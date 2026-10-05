@@ -1,0 +1,941 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Birthday Door Surprise</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Grandstander:wght@600;800&family=Nunito:wght@400;700;800&display=swap">
+<style>
+/* Layout: one full-screen stage with two cartoon sets (hallway, party room) and a few floating controls. */
+:root {
+  color-scheme: light;
+  --ink: #2b1d3a;          /* outlines and text */
+  --paper: #fff8ef;        /* cards, door frame */
+  --wall: #f7d9bd;         /* hallway wallpaper */
+  --wall-2: #f1cca8;
+  --floor: #b8743f;
+  --floor-2: #a8662f;
+  --door: #3f7fe0;
+  --door-2: #2f69c4;
+  --party-wall: #ffe0ea;
+  --party-dot: #ffc6d8;
+  --party-floor: #8f5bd1;
+  --party-floor-2: #7d49be;
+  --glow: #ffd36b;
+  --accent: #ff4f7b;
+  --muted: #6c5a7c;
+  --font-display: "Grandstander", "Comic Sans MS", "Chalkboard SE", "Trebuchet MS", sans-serif;
+  --font-body: "Nunito", "Segoe UI", system-ui, -apple-system, sans-serif;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: var(--ink);
+  color: var(--ink);
+  font-family: var(--font-body);
+  overflow: hidden;
+  -webkit-tap-highlight-color: transparent;
+}
+[hidden] { display: none !important; }
+.instant, .instant * { transition: none !important; }
+button { font: inherit; }
+
+.stage { position: relative; width: 100%; height: 100%; overflow: hidden; background: var(--wall); }
+
+/* ---------- Hallway ---------- */
+.hall {
+  position: absolute; inset: 0;
+  background: repeating-linear-gradient(90deg, var(--wall) 0 28px, var(--wall-2) 28px 56px);
+  transition: transform 1.6s cubic-bezier(.55,0,.75,.4), opacity .7s ease .95s;
+  will-change: transform;
+}
+.hall.zoom { transform: scale(7); opacity: 0; }
+.hall .floor {
+  position: absolute; left: 0; right: 0; bottom: 0; height: 28%;
+  background: repeating-linear-gradient(90deg, var(--floor) 0 70px, var(--floor-2) 70px 74px);
+  border-top: 10px solid var(--paper);
+}
+.spill {
+  position: absolute; left: 50%; bottom: 0; height: 28%;
+  width: calc(var(--dw) * 3.2); transform: translateX(-50%);
+  clip-path: polygon(34% 0, 66% 0, 100% 100%, 0 100%);
+  background: linear-gradient(to bottom, rgba(255,211,107,.85), rgba(255,211,107,0));
+  opacity: 0; transition: opacity 1.2s ease .3s;
+}
+.hall.open .spill { opacity: 1; }
+.sconce {
+  position: absolute; bottom: calc(28% + var(--dw) * 1.45);
+  width: calc(var(--dw) * .22); aspect-ratio: 1 / 1.3;
+  background: var(--glow); border: 4px solid var(--ink); border-radius: 50% 50% 12px 12px;
+  box-shadow: 0 0 40px 18px rgba(255,211,107,.55);
+}
+.sconce.l { left: calc(50% - var(--dw) * 1.05); }
+.sconce.r { left: calc(50% + var(--dw) * .83); }
+
+.door-wrap {
+  --dw: min(34vw, 27vh);
+  position: absolute; left: 50%; bottom: 28%;
+  width: var(--dw); height: calc(var(--dw) * 2.05);
+  transform: translateX(-50%);
+  perspective: 900px;
+}
+.hall { --dw: min(34vw, 27vh); }
+.frame {
+  position: absolute; inset: calc(var(--dw) * -.09) calc(var(--dw) * -.09) 0;
+  background: var(--paper); border: 4px solid var(--ink); border-bottom: 0;
+  border-radius: 10px 10px 0 0;
+}
+.doorway {
+  position: absolute; inset: 0; overflow: hidden;
+  background: radial-gradient(ellipse at 50% 70%, #fff3c4 0%, var(--glow) 45%, #ff9f43 100%);
+  border: 4px solid var(--ink); border-bottom: 0;
+}
+.doorway .peek { position: absolute; }
+.door {
+  position: absolute; inset: 0;
+  background: linear-gradient(90deg, var(--door) 0 92%, var(--door-2) 92%);
+  border: 4px solid var(--ink); border-bottom: 0;
+  transform-origin: left center;
+  transition: transform 1.7s cubic-bezier(.3,.1,.2,1);
+  display: grid; grid-template-rows: 1fr 1.4fr; gap: 9%; padding: 14% 14% 16%;
+}
+.hall.open .door { transform: rotateY(-108deg); }
+.door .panel { border: 4px solid var(--ink); border-radius: 8px; background: var(--door-2); box-shadow: inset 0 0 0 6px var(--door); }
+.knob {
+  position: absolute; right: 9%; top: 52%;
+  width: 13%; aspect-ratio: 1; border-radius: 50%;
+  background: var(--glow); border: 4px solid var(--ink);
+}
+.sign {
+  position: absolute; left: 6%; right: 6%; top: 27%; transform: translateY(-50%) rotate(-4deg);
+  padding: .35em .3em; transition: opacity .3s ease;
+  background: var(--paper); border: 3px solid var(--ink); border-radius: 8px;
+  font-family: var(--font-display); font-weight: 800; color: var(--accent);
+  font-size: calc(var(--dw) * .11); line-height: 1.1; text-align: center;
+  overflow-wrap: break-word;
+}
+.hall.open .sign { opacity: 0; }
+.fly { position: absolute; left: 0; top: 0; pointer-events: none; z-index: 5; }
+
+/* ---------- Party room ---------- */
+.room {
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(circle, var(--party-dot) 0 7px, transparent 8px) 0 0 / 54px 54px,
+    var(--party-wall);
+  opacity: 0; transform: scale(1.18); visibility: hidden;
+  transition: opacity 1s ease, transform 1.8s cubic-bezier(.2,.7,.2,1), visibility 0s linear 1s;
+}
+.room.in { opacity: 1; transform: none; visibility: visible; transition-delay: 0s; }
+.room .floor {
+  position: absolute; left: 0; right: 0; bottom: 0; height: 24%;
+  background: repeating-linear-gradient(90deg, var(--party-floor) 0 60px, var(--party-floor-2) 60px 120px);
+  border-top: 10px solid var(--paper);
+}
+.garland { position: absolute; left: 0; right: 0; top: 0; height: 13%; pointer-events: none; }
+.garland svg { width: 100%; height: 100%; display: block; }
+.headline {
+  position: absolute; left: 16px; right: 16px; top: 13%;
+  text-align: center; pointer-events: none;
+  display: grid; gap: .4rem; justify-items: center;
+}
+.headline h1 {
+  margin: 0; font-family: var(--font-display); font-weight: 800;
+  font-size: clamp(2rem, 7.4vmin, 4.6rem); line-height: 1; letter-spacing: .01em;
+  color: var(--accent); text-wrap: balance;
+  -webkit-text-stroke: 2px var(--ink); paint-order: stroke fill;
+  text-shadow: 0 5px 0 var(--ink);
+  opacity: 0; transform: translateY(-20px) scale(.9);
+  transition: opacity .6s ease, transform .8s cubic-bezier(.3,1.6,.5,1);
+}
+.room.revealed .headline h1 { opacity: 1; transform: none; }
+.lyrics {
+  font-family: var(--font-display); font-weight: 600;
+  font-size: clamp(1.05rem, 3.6vmin, 1.7rem); color: var(--muted);
+  min-height: 1.4em; overflow-wrap: anywhere;
+}
+.lyrics span { transition: color .15s ease; }
+.lyrics span.on { color: var(--ink); }
+.lyrics span.done { color: var(--ink); }
+
+.table {
+  --tw: min(94vw, 56vh);
+  position: absolute; left: 50%; bottom: 9%; width: var(--tw);
+  transform: translateX(-50%);
+}
+.cake {
+  display: block; width: 64%; margin: 0 auto -2px; overflow: visible;
+  cursor: default;
+}
+.room.wish .cake { cursor: pointer; }
+.cake .flame { transform-box: fill-box; transform-origin: 50% 100%; animation: flicker .45s ease-in-out infinite alternate; }
+.cake .flame:nth-child(2n) { animation-duration: .38s; }
+.cake.out .flame { animation: blowout .35s ease-in forwards; }
+.cake .smoke { opacity: 0; }
+.cake.out .smoke { transform-box: fill-box; animation: smoke 1.8s ease-out .2s forwards; }
+@keyframes flicker { from { transform: scale(1, 1) skewX(-3deg); } to { transform: scale(.88, 1.12) skewX(4deg); } }
+@keyframes blowout { to { transform: scale(.1, .2) skewX(30deg); opacity: 0; } }
+@keyframes smoke { 0% { opacity: .8; transform: translateY(0) scale(.6); } 100% { opacity: 0; transform: translateY(-40px) scale(1.6); } }
+.cake .glow { opacity: 0; transition: opacity 1s ease; }
+.room.revealed .cake .glow { opacity: 1; }
+.cake.out .glow { opacity: 0; }
+.tabletop {
+  height: calc(var(--tw) * .07); background: var(--paper);
+  border: 4px solid var(--ink); border-radius: 10px;
+  position: relative; z-index: 1;
+}
+.cloth {
+  height: calc(var(--tw) * .12); margin: -4px 4% 0;
+  background: radial-gradient(circle at 50% 100%, transparent 0 10px, var(--accent) 11px) 0 0 / 28px 100%;
+  border-left: 4px solid var(--ink); border-right: 4px solid var(--ink);
+}
+.legs { display: flex; justify-content: space-between; padding: 0 12%; }
+.legs i { display: block; width: calc(var(--tw) * .05); height: calc(var(--tw) * .2); background: var(--paper); border: 4px solid var(--ink); border-top: 0; }
+
+.balloons { position: absolute; inset: 0; z-index: 4; pointer-events: none; }
+.balloons .rb { pointer-events: auto; touch-action: manipulation; }
+.rb { position: absolute; cursor: pointer; animation: bob var(--bd, 3s) ease-in-out var(--bdl, 0s) infinite alternate; }
+.rb svg { display: block; width: 100%; height: auto; pointer-events: none; }
+.rb.gone { pointer-events: none; }
+.rb.gone svg { animation: popped .14s ease-out forwards; }
+@keyframes bob { from { transform: translateY(0) rotate(-3deg); } to { transform: translateY(-12px) rotate(3deg); } }
+@keyframes popped { to { transform: scale(1.35); opacity: 0; } }
+.shard { position: absolute; width: 10px; height: 7px; border-radius: 2px; pointer-events: none; z-index: 6; }
+.popword {
+  position: absolute; z-index: 7; pointer-events: none;
+  font-family: var(--font-display); font-weight: 800; font-size: 1.6rem; color: var(--paper);
+  -webkit-text-stroke: 2px var(--ink); paint-order: stroke fill;
+}
+.hint {
+  position: absolute; left: 50%; bottom: calc(9% + min(94vw, 56vh) * .78); z-index: 3;
+  transform: translateX(-50%);
+  padding: .5rem .95rem; border-radius: 999px; white-space: nowrap;
+  background: var(--ink); color: var(--paper); font-weight: 800; font-size: .95rem;
+  animation: nudge 1.2s ease-in-out infinite alternate;
+}
+@keyframes nudge { to { transform: translateX(-50%) translateY(-6px); } }
+#confetti { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 8; }
+
+/* ---------- Cards and controls ---------- */
+.overlay {
+  position: absolute; inset: 0; z-index: 20;
+  display: grid; place-items: center; padding: 16px;
+  background: rgba(43,29,58,.55);
+}
+.card {
+  width: min(100%, 26rem); max-height: 100%; overflow: auto;
+  background: var(--paper); color: var(--ink);
+  border: 4px solid var(--ink); border-radius: 22px;
+  box-shadow: 0 10px 0 var(--ink);
+  padding: 1.6rem 1.4rem 1.4rem;
+  display: grid; gap: .9rem; text-align: center;
+}
+.card h2 { margin: 0; font-family: var(--font-display); font-weight: 800; font-size: 1.9rem; line-height: 1.05; text-wrap: balance; overflow-wrap: anywhere; }
+.card p { margin: 0; line-height: 1.45; overflow-wrap: anywhere; }
+.card .kicker { font-size: .78rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.card .small { font-size: .85rem; color: var(--muted); }
+.actions { display: flex; flex-wrap: wrap; gap: .6rem; justify-content: center; }
+.btn {
+  appearance: none; cursor: pointer;
+  padding: .75rem 1.25rem; border-radius: 999px;
+  border: 3px solid var(--ink); background: var(--accent); color: var(--paper);
+  font-weight: 800; font-size: 1.05rem;
+  box-shadow: 0 4px 0 var(--ink); transition: transform .1s ease, box-shadow .1s ease;
+}
+.btn:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--ink); }
+.btn.ghost { background: var(--paper); color: var(--ink); }
+.btn:focus-visible, .chip:focus-visible, .field input:focus-visible, .field textarea:focus-visible { outline: 3px solid var(--door); outline-offset: 3px; }
+.chip {
+  position: absolute; z-index: 15; top: calc(12px + env(safe-area-inset-top, 0px));
+  appearance: none; cursor: pointer;
+  border: 3px solid var(--ink); border-radius: 999px;
+  background: var(--paper); color: var(--ink); font-weight: 800; font-size: .85rem;
+  padding: .4rem .8rem;
+}
+.chip.mute { right: 12px; }
+.final {
+  position: absolute; left: 16px; right: 16px; z-index: 12;
+  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  margin: 0 auto; width: auto; max-width: 26rem;
+  animation: rise .6s cubic-bezier(.3,1.4,.5,1);
+}
+@keyframes rise { from { transform: translateY(40px); opacity: 0; } }
+.mini-balloon { width: 46px; height: auto; justify-self: center; }
+
+form.custom { display: grid; gap: .75rem; text-align: left; }
+.field { display: grid; gap: .25rem; }
+.field label { font-weight: 800; font-size: .85rem; }
+.field input, .field textarea {
+  width: 100%; padding: .6rem .7rem; border-radius: 10px;
+  border: 3px solid var(--ink); background: #fff; color: var(--ink); font: inherit;
+}
+.field textarea { resize: vertical; min-height: 4.5rem; }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; }
+.linkbox { font-size: .8rem; word-break: break-all; background: #fff; border: 2px dashed var(--muted); border-radius: 10px; padding: .5rem; user-select: all; }
+
+@media (prefers-reduced-motion: reduce) {
+  .rb { animation: none; }
+  .hint { animation: none; }
+}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <radialGradient id="bshade" cx=".36" cy=".3" r=".8">
+      <stop offset="0" stop-color="#fff" stop-opacity=".35"/>
+      <stop offset=".4" stop-color="#fff" stop-opacity="0"/>
+      <stop offset="1" stop-color="#000" stop-opacity=".28"/>
+    </radialGradient>
+    <radialGradient id="flameg" cx=".5" cy=".7" r=".6">
+      <stop offset="0" stop-color="#fffbe0"/>
+      <stop offset=".45" stop-color="#ffd23f"/>
+      <stop offset="1" stop-color="#ff7a1a"/>
+    </radialGradient>
+    <radialGradient id="cakeglow" cx=".5" cy=".5" r=".5">
+      <stop offset="0" stop-color="#ffe07a" stop-opacity=".7"/>
+      <stop offset="1" stop-color="#ffe07a" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+</svg>
+
+<main class="stage" id="stage">
+  <section class="hall" id="hall" aria-hidden="true">
+    <div class="floor"></div>
+    <div class="spill"></div>
+    <div class="sconce l"></div>
+    <div class="sconce r"></div>
+    <div class="door-wrap" id="doorWrap">
+      <div class="frame"></div>
+      <div class="doorway" id="doorway"></div>
+      <div class="door" id="door">
+        <div class="panel"></div>
+        <div class="panel"></div>
+        <div class="knob"></div>
+        <div class="sign" id="doorSign"></div>
+      </div>
+    </div>
+    <div class="fly" id="fly"></div>
+  </section>
+
+  <section class="room" id="room" aria-label="Birthday party">
+    <div class="floor"></div>
+    <div class="garland" id="garland"></div>
+    <div class="headline">
+      <h1 id="title"></h1>
+      <div class="lyrics" id="lyrics" aria-live="polite"></div>
+    </div>
+    <div class="table" id="table">
+      <svg class="cake" id="cake" viewBox="0 0 300 250" role="img" aria-label="Birthday cake with lit candles"></svg>
+      <div class="tabletop"></div>
+      <div class="cloth"></div>
+      <div class="legs"><i></i><i></i></div>
+    </div>
+    <div class="hint" id="hint" hidden>Make a wish, then tap the candles</div>
+    <div class="balloons" id="balloons"></div>
+  </section>
+
+  <canvas id="confetti"></canvas>
+
+  <button class="chip mute" id="muteBtn" type="button" hidden aria-pressed="false">Sound on</button>
+
+  <div class="card final" id="final" hidden>
+    <h2 id="finalTitle"></h2>
+    <p id="finalMsg"></p>
+    <p class="small" id="finalFrom"></p>
+    <div class="actions">
+      <button class="btn" id="againBtn" type="button">Watch again</button>
+      <button class="btn ghost" id="makeBtn2" type="button">Make one</button>
+    </div>
+  </div>
+
+  <div class="overlay" id="intro">
+    <div class="card">
+      <svg class="mini-balloon" viewBox="0 0 60 110" aria-hidden="true"><use href="#bshape"/></svg>
+      <div class="kicker" id="introFrom">A surprise is waiting</div>
+      <h2 id="introTitle"></h2>
+      <p>There's a party behind this door. Turn your sound on for the song.</p>
+      <div class="actions">
+        <button class="btn" id="startBtn" type="button">Open the door</button>
+        <button class="btn ghost" id="makeBtn" type="button">Make one</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="overlay" id="customize" hidden>
+    <div class="card">
+      <h2>Make a birthday door</h2>
+      <form class="custom" id="customForm">
+        <div class="field">
+          <label for="fName">Birthday person</label>
+          <input id="fName" name="name" maxlength="30" autocomplete="off" required>
+        </div>
+        <div class="row2">
+          <div class="field">
+            <label for="fAge">Age (optional)</label>
+            <input id="fAge" name="age" type="number" min="1" max="120" inputmode="numeric">
+          </div>
+          <div class="field">
+            <label for="fFrom">From (optional)</label>
+            <input id="fFrom" name="from" maxlength="30" autocomplete="off">
+          </div>
+        </div>
+        <div class="field">
+          <label for="fMsg">Message (optional)</label>
+          <textarea id="fMsg" name="msg" maxlength="160"></textarea>
+        </div>
+        <div class="actions">
+          <button class="btn" type="submit">Play it</button>
+          <button class="btn ghost" type="button" id="copyBtn">Copy link</button>
+          <button class="btn ghost" type="button" id="closeCustom">Close</button>
+        </div>
+        <div class="linkbox" id="linkBox" hidden></div>
+      </form>
+    </div>
+  </div>
+</main>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <g id="bshape">
+      <path d="M30 2C13 2 3 17 3 34c0 21 16 37 25 40l-2 5h8l-2-5c9-3 25-19 25-40C57 17 47 2 30 2Z" fill="#ff4f7b" stroke="#2b1d3a" stroke-width="2.5"/>
+      <path d="M30 79q-7 8 0 15t0 15" stroke="#2b1d3a" stroke-width="1.6" fill="none"/>
+    </g>
+  </defs>
+</svg>
+
+<script>
+(() => {
+  'use strict';
+
+  // ---------- Settings (from the link, editable in the page) ----------
+  const clean = (v, max) => (v || '').replace(/[\u0000-\u001f]/g, '').trim().slice(0, max);
+  const q = new URLSearchParams(location.search);
+  const cfg = {
+    name: clean(q.get('name'), 30) || 'Friend',
+    age: Math.max(0, Math.min(120, parseInt(q.get('age'), 10) || 0)),
+    from: clean(q.get('from'), 30),
+    msg: clean(q.get('msg'), 160)
+  };
+
+  const $ = (id) => document.getElementById(id);
+  const stage = $('stage'), hall = $('hall'), room = $('room'), fly = $('fly');
+  const layer = $('balloons'), cake = $('cake');
+  const COLORS = ['#ff4f7b', '#ffb703', '#3fa7f5', '#49c46a', '#9b5de5', '#ff7b39', '#00bbc4', '#f15bb5'];
+  const rand = (a, b) => a + Math.random() * (b - a);
+  const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+  const wait = (ms) => new Promise((r) => timers.push(setTimeout(r, ms)));
+  let timers = [];
+  let runId = 0;
+
+  // ---------- Sound (Web Audio, nothing to download) ----------
+  const Sound = {
+    ctx: null, out: null, muted: false, noise: null,
+    init() {
+      if (this.ctx) { if (this.ctx.state === 'suspended') this.ctx.resume(); return; }
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return;
+      this.ctx = new AC();
+      this.out = this.ctx.createGain();
+      this.out.gain.value = this.muted ? 0 : .8;
+      const comp = this.ctx.createDynamicsCompressor();
+      this.out.connect(comp); comp.connect(this.ctx.destination);
+      const len = this.ctx.sampleRate;
+      this.noise = this.ctx.createBuffer(1, len, this.ctx.sampleRate);
+      const d = this.noise.getChannelData(0);
+      for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+    },
+    setMuted(m) {
+      this.muted = m;
+      if (this.out) this.out.gain.setTargetAtTime(m ? 0 : .8, this.ctx.currentTime, .03);
+    },
+    now() { return this.ctx ? this.ctx.currentTime : 0; },
+    tone(freq, t, dur, type = 'triangle', vol = .25) {
+      if (!this.ctx) return;
+      const o = this.ctx.createOscillator(), g = this.ctx.createGain();
+      o.type = type; o.frequency.value = freq;
+      g.gain.setValueAtTime(0, t);
+      g.gain.linearRampToValueAtTime(vol, t + .015);
+      g.gain.exponentialRampToValueAtTime(vol * .45, t + Math.min(.25, dur * .5));
+      g.gain.setValueAtTime(vol * .45, t + dur * .85);
+      g.gain.exponentialRampToValueAtTime(.0001, t + dur + .12);
+      o.connect(g); g.connect(this.out);
+      o.start(t); o.stop(t + dur + .15);
+    },
+    burst(t, dur, f0, f1, vol, type = 'bandpass', q = 1.2) {
+      if (!this.ctx) return;
+      const s = this.ctx.createBufferSource(); s.buffer = this.noise;
+      const f = this.ctx.createBiquadFilter(); f.type = type; f.Q.value = q;
+      f.frequency.setValueAtTime(f0, t); f.frequency.exponentialRampToValueAtTime(f1, t + dur);
+      const g = this.ctx.createGain();
+      g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + dur);
+      s.connect(f); f.connect(g); g.connect(this.out);
+      s.start(t, Math.random() * .5); s.stop(t + dur + .02);
+    },
+    pop() {
+      if (!this.ctx) return;
+      const t = this.now();
+      this.burst(t, .09, rand(1800, 3200), 500, .9, 'bandpass', .8);
+      const o = this.ctx.createOscillator(), g = this.ctx.createGain();
+      o.frequency.setValueAtTime(rand(180, 260), t); o.frequency.exponentialRampToValueAtTime(60, t + .08);
+      g.gain.setValueAtTime(.5, t); g.gain.exponentialRampToValueAtTime(.0001, t + .1);
+      o.connect(g); g.connect(this.out); o.start(t); o.stop(t + .12);
+    },
+    creak() {
+      if (!this.ctx) return;
+      const t = this.now();
+      const o = this.ctx.createOscillator(), f = this.ctx.createBiquadFilter(), g = this.ctx.createGain();
+      const lfo = this.ctx.createOscillator(), lg = this.ctx.createGain();
+      o.type = 'sawtooth';
+      o.frequency.setValueAtTime(95, t); o.frequency.linearRampToValueAtTime(150, t + 1.1);
+      lfo.frequency.value = 23; lg.gain.value = 18; lfo.connect(lg); lg.connect(o.frequency);
+      f.type = 'lowpass'; f.frequency.value = 900;
+      g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(.07, t + .1);
+      g.gain.linearRampToValueAtTime(.05, t + .9); g.gain.exponentialRampToValueAtTime(.0001, t + 1.3);
+      o.connect(f); f.connect(g); g.connect(this.out);
+      o.start(t); lfo.start(t); o.stop(t + 1.35); lfo.stop(t + 1.35);
+    },
+    whoosh() { if (this.ctx) this.burst(this.now(), 1.2, 300, 2400, .25, 'bandpass', .7); },
+    blow() { if (this.ctx) this.burst(this.now(), .9, 1400, 300, .55, 'lowpass', .5); },
+    tada() {
+      if (!this.ctx) return;
+      const t = this.now();
+      [72, 76, 79, 84].forEach((m, i) => this.tone(midi(m), t + i * .09, i === 3 ? .8 : .12, 'square', .08));
+    }
+  };
+  const midi = (m) => 440 * Math.pow(2, (m - 69) / 12);
+
+  // Happy Birthday (public domain melody), key of C, 3/4.
+  // [midi note, beats, syllable, chord]
+  const SONG = [
+    [[67,.75,'Hap'],[67,.25,'py '],[69,1,'birth','C'],[67,1,'day '],[72,1,'to '],[71,2,'you','G']],
+    [[67,.75,'Hap'],[67,.25,'py '],[69,1,'birth','G'],[67,1,'day '],[74,1,'to '],[72,2,'you','C']],
+    [[67,.75,'Hap'],[67,.25,'py '],[79,1,'birth','C'],[76,1,'day '],[72,1,'dear '],[71,1,'@','F'],[69,2,'']],
+    [[77,.75,'Hap','F'],[77,.25,'py '],[76,1,'birth','C'],[72,1,'day '],[74,1,'to ','G'],[72,3,'you','C']]
+  ];
+  const CHORDS = { C: [48, 60, 64, 67], G: [43, 59, 62, 67], F: [41, 57, 60, 65] };
+
+  function playSong(onLine, onNote, onEnd) {
+    const beat = .5;
+    let t = Sound.now() + .3;
+    const t0 = t;
+    const lines = [];
+    SONG.forEach((line, li) => {
+      lines.push({ li, at: t });
+      line.forEach((n, ni) => {
+        const dur = n[1] * beat;
+        Sound.tone(midi(n[0]), t, dur * .92, 'triangle', .28);
+        Sound.tone(midi(n[0] + 12), t, dur * .6, 'sine', .06);
+        if (n[3]) {
+          let next = line.findIndex((x, k) => k > ni && x[3]);
+          let span = next === -1 ? line.slice(ni).reduce((s, x) => s + x[1], 0) : line.slice(ni, next).reduce((s, x) => s + x[1], 0);
+          CHORDS[n[3]].forEach((m, k) => Sound.tone(midi(m), t + k * .02, span * beat * .95, 'sine', k === 0 ? .12 : .045));
+        }
+        const at = t;
+        timers.push(setTimeout(() => onNote(li, ni), Math.max(0, (at - Sound.now()) * 1000)));
+        t += dur;
+      });
+    });
+    lines.forEach((l) => timers.push(setTimeout(() => onLine(l.li), Math.max(0, (l.at - Sound.now()) * 1000 - 60))));
+    timers.push(setTimeout(onEnd, (t - t0) * 1000 + 600));
+  }
+
+  // ---------- Drawing helpers ----------
+  function balloonSVG(color) {
+    return `<svg viewBox="0 0 60 110" aria-hidden="true">
+      <path d="M30 79q-7 8 0 15t0 15" stroke="#2b1d3a" stroke-width="1.6" fill="none"/>
+      <path d="M30 2C13 2 3 17 3 34c0 21 16 37 25 40l-2 5h8l-2-5c9-3 25-19 25-40C57 17 47 2 30 2Z" fill="${color}"/>
+      <path d="M30 2C13 2 3 17 3 34c0 21 16 37 25 40l-2 5h8l-2-5c9-3 25-19 25-40C57 17 47 2 30 2Z" fill="url(#bshade)" stroke="#2b1d3a" stroke-width="2.5"/>
+      <ellipse cx="18" cy="22" rx="5" ry="10" fill="#fff" opacity=".55" transform="rotate(-22 18 22)"/>
+    </svg>`;
+  }
+  function makeBalloon(color, w) {
+    const el = document.createElement('div');
+    el.innerHTML = balloonSVG(color);
+    el.style.width = w + 'px';
+    el.dataset.color = color;
+    return el;
+  }
+
+  function buildGarland() {
+    const text = 'HAPPY BIRTHDAY';
+    const n = text.length, W = 1000, H = 130;
+    let flags = '';
+    for (let i = 0; i < n; i++) {
+      const x = 40 + i * ((W - 80) / (n - 1));
+      const sag = 40 * Math.sin(Math.PI * (i / (n - 1)));
+      const y = 12 + sag;
+      const ch = text[i];
+      if (ch === ' ') continue;
+      const c = COLORS[i % COLORS.length];
+      flags += `<g transform="translate(${x.toFixed(1)} ${y.toFixed(1)})">
+        <path d="M-30 0H30L0 62Z" fill="${c}" stroke="#2b1d3a" stroke-width="3" stroke-linejoin="round"/>
+        <text x="0" y="30" text-anchor="middle" font-family="Grandstander, sans-serif" font-weight="800" font-size="28" fill="#fff8ef" stroke="#2b1d3a" stroke-width="1.5" paint-order="stroke">${ch}</text></g>`;
+    }
+    $('garland').innerHTML = `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMin meet">
+      <path d="M0 6Q500 ${6 + 80} 1000 6" stroke="#2b1d3a" stroke-width="3" fill="none"/>${flags}</svg>`;
+  }
+
+  function buildCake() {
+    const n = cfg.age ? Math.max(1, Math.min(cfg.age, 9)) : 5;
+    let candles = '', flames = '', smoke = '';
+    const x0 = 95, x1 = 205;
+    for (let i = 0; i < n; i++) {
+      const x = n === 1 ? 150 : x0 + i * ((x1 - x0) / (n - 1));
+      const c = COLORS[(i + 2) % COLORS.length];
+      candles += `<rect x="${x - 5}" y="44" width="10" height="38" rx="2" fill="#fff8ef" stroke="#2b1d3a" stroke-width="2.5"/>
+        <path d="M${x - 5} 52l10 -5M${x - 5} 62l10 -5M${x - 5} 72l10 -5" stroke="${c}" stroke-width="3"/>
+        <line x1="${x}" y1="44" x2="${x}" y2="38" stroke="#2b1d3a" stroke-width="2"/>`;
+      flames += `<path class="flame" d="M${x} 14c7 9 9 15 6 20a7 7 0 0 1-12 0c-3-5 0-11 6-20Z" fill="url(#flameg)" stroke="#2b1d3a" stroke-width="1.5"/>`;
+      smoke += `<circle class="smoke" cx="${x}" cy="28" r="5" fill="#b9aec4"/>`;
+    }
+    let sprinkles = '';
+    for (let i = 0; i < 26; i++) {
+      const x = rand(48, 252), y = rand(170, 222);
+      sprinkles += `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="9" height="3" rx="1.5" fill="${pick(COLORS)}" transform="rotate(${rand(0, 180).toFixed(0)} ${x.toFixed(1)} ${y.toFixed(1)})"/>`;
+    }
+    const age = cfg.age ? `<text x="150" y="128" text-anchor="middle" font-family="Grandstander, sans-serif" font-weight="800" font-size="34" fill="#ff4f7b" stroke="#2b1d3a" stroke-width="1.5" paint-order="stroke">${cfg.age}</text>` : '';
+    cake.innerHTML = `
+      <ellipse class="glow" cx="150" cy="110" rx="160" ry="130" fill="url(#cakeglow)"/>
+      <ellipse cx="150" cy="238" rx="140" ry="12" fill="#fff8ef" stroke="#2b1d3a" stroke-width="3"/>
+      <rect x="35" y="150" width="230" height="86" rx="12" fill="#ffd6a5" stroke="#2b1d3a" stroke-width="3"/>
+      <path d="M35 162q0-14 14-14h202q14 0 14 14v8c-10 0-10 16-20 16s-10-12-20-12-10 18-20 18-10-14-20-14-10 12-20 12-10-16-20-16-10 14-20 14-10-12-20-12-10 16-20 16-10-14-20-14-10 12-20 12-10-10-14-10Z" fill="#ff8fab" stroke="#2b1d3a" stroke-width="3" stroke-linejoin="round"/>
+      ${sprinkles}
+      <rect x="75" y="82" width="150" height="70" rx="10" fill="#fff8ef" stroke="#2b1d3a" stroke-width="3"/>
+      <path d="M75 94q0-12 12-12h126q12 0 12 12v6c-8 0-8 12-16 12s-8-9-16-9-8 13-16 13-8-10-16-10-8 9-16 9-8-12-16-12-8 10-16 10-8-9-16-9-8 7-12 7Z" fill="#9b5de5" stroke="#2b1d3a" stroke-width="3" stroke-linejoin="round"/>
+      ${age}
+      ${candles}
+      <g>${flames}</g>
+      ${smoke}`;
+    cake.classList.remove('out');
+  }
+
+  // ---------- Confetti ----------
+  const cv = $('confetti'), cx = cv.getContext('2d');
+  let parts = [], confettiOn = false;
+  function sizeCanvas() {
+    const r = stage.getBoundingClientRect(), dpr = Math.min(2, window.devicePixelRatio || 1);
+    cv.width = r.width * dpr; cv.height = r.height * dpr; cx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  function confetti(n, x, y, spread = 1) {
+    const r = stage.getBoundingClientRect();
+    for (let i = 0; i < n; i++) {
+      parts.push({
+        x: x ?? rand(0, r.width), y: y ?? rand(-40, -10),
+        vx: rand(-4, 4) * spread, vy: y == null ? rand(1, 3) : rand(-11, -4),
+        w: rand(6, 11), h: rand(4, 8), a: rand(0, 6), va: rand(-.2, .2), c: pick(COLORS)
+      });
+    }
+    if (!confettiOn) { confettiOn = true; requestAnimationFrame(tick); }
+  }
+  function tick() {
+    const r = stage.getBoundingClientRect();
+    cx.clearRect(0, 0, r.width, r.height);
+    parts = parts.filter((p) => p.y < r.height + 20);
+    for (const p of parts) {
+      p.vy += .18; p.vx *= .99; p.x += p.vx; p.y += Math.min(p.vy, 6); p.a += p.va;
+      cx.save(); cx.translate(p.x, p.y); cx.rotate(p.a); cx.fillStyle = p.c;
+      cx.fillRect(-p.w / 2, -p.h / 2, p.w, Math.abs(Math.cos(p.a * 2)) * p.h + 1); cx.restore();
+    }
+    if (parts.length) requestAnimationFrame(tick); else confettiOn = false;
+  }
+
+  // ---------- Scene 1: the door ----------
+  function setupHall() {
+    hall.classList.remove('open', 'zoom');
+    hall.style.transformOrigin = '';
+    fly.innerHTML = '';
+    const name = cfg.name;
+    $('doorSign').textContent = /s$/i.test(name) ? `${name}' party` : `${name}'s party`;
+    const dw = $('doorway');
+    dw.innerHTML = '';
+    [[8, 30, 0], [42, 46, 3], [24, 12, 5], [60, 18, 1]].forEach(([l, t, c]) => {
+      const b = makeBalloon(COLORS[c], 1);
+      b.className = 'peek';
+      b.style.left = l + '%'; b.style.top = t + '%'; b.style.width = '42%';
+      dw.appendChild(b);
+    });
+  }
+
+  function releaseBalloons(count) {
+    const hr = hall.getBoundingClientRect(), dr = $('doorWrap').getBoundingClientRect();
+    const sx = dr.left - hr.left + dr.width / 2, sy = dr.top - hr.top + dr.height * .55;
+    for (let i = 0; i < count; i++) {
+      timers.push(setTimeout(() => {
+        const w = rand(.45, .7) * dr.width;
+        const b = makeBalloon(pick(COLORS), w);
+        b.style.position = 'absolute';
+        b.style.left = (sx - w / 2) + 'px'; b.style.top = (sy - w * .9) + 'px';
+        fly.appendChild(b);
+        const dx = rand(-.55, .55) * hr.width, dy = -rand(.55, 1.05) * hr.height;
+        b.animate([
+          { transform: 'translate(0,0) scale(.3) rotate(0deg)', opacity: 0 },
+          { opacity: 1, offset: .08 },
+          { transform: `translate(${dx * .3}px, ${dy * .35}px) scale(1) rotate(${rand(-10, 10)}deg)`, offset: .4 },
+          { transform: `translate(${dx}px, ${dy}px) scale(${rand(1.1, 1.6)}) rotate(${rand(-25, 25)}deg)` }
+        ], { duration: rand(3200, 4600), easing: 'cubic-bezier(.25,.6,.35,1)', fill: 'forwards' });
+      }, i * 170));
+    }
+  }
+
+  // ---------- Scene 2: the party room ----------
+  let roomBalloons = [];
+  function fillRoom() {
+    layer.innerHTML = '';
+    roomBalloons = [];
+    const r = stage.getBoundingClientRect();
+    const scale = Math.max(.6, Math.min(1.25, Math.min(r.width, r.height) / 700));
+    const count = Math.round(Math.max(30, Math.min(64, (r.width * r.height) / 13000)));
+    const tr = $('table').getBoundingClientRect();
+    const cxp = tr.left - r.left + tr.width / 2, cyp = tr.top - r.top;
+    for (let i = 0; i < count; i++) {
+      const w = rand(80, 150) * scale, h = w * 1.83;
+      let x, y;
+      if (i < count * .3) { // pile up over the cake and the title
+        x = cxp + rand(-.55, .55) * tr.width - w / 2;
+        y = rand(r.height * .05, r.height * .8) - h * .3;
+      } else {
+        x = rand(-w * .3, r.width - w * .7);
+        y = rand(-h * .25, r.height - h * .55);
+      }
+      const b = makeBalloon(pick(COLORS), w);
+      b.className = 'rb';
+      b.style.left = x + 'px'; b.style.top = y + 'px';
+      b.style.zIndex = Math.floor(rand(1, 50));
+      b.style.setProperty('--bd', rand(2.2, 3.8).toFixed(2) + 's');
+      b.style.setProperty('--bdl', (-rand(0, 3)).toFixed(2) + 's');
+      layer.appendChild(b);
+      roomBalloons.push({ el: b, d: Math.hypot(x + w / 2 - cxp, y + h * .35 - cyp) + rand(0, 160) });
+    }
+  }
+
+  function popBalloon(el, auto) {
+    if (!el || el.classList.contains('gone')) return;
+    el.classList.add('gone');
+    Sound.pop();
+    const sr = stage.getBoundingClientRect(), br = el.getBoundingClientRect();
+    const px = br.left - sr.left + br.width / 2, py = br.top - sr.top + br.width * .55;
+    const color = el.dataset.color;
+    for (let i = 0; i < 9; i++) {
+      const s = document.createElement('div');
+      s.className = 'shard'; s.style.background = color;
+      s.style.left = px + 'px'; s.style.top = py + 'px';
+      stage.appendChild(s);
+      const a = rand(0, Math.PI * 2), d = rand(30, 90);
+      s.animate([
+        { transform: 'translate(0,0) rotate(0)', opacity: 1 },
+        { transform: `translate(${Math.cos(a) * d}px, ${Math.sin(a) * d + 30}px) rotate(${rand(-300, 300)}deg)`, opacity: 0 }
+      ], { duration: rand(450, 700), easing: 'cubic-bezier(.2,.8,.4,1)' }).onfinish = () => s.remove();
+    }
+    if (Math.random() < (auto ? .22 : .5)) {
+      const w = document.createElement('div');
+      w.className = 'popword'; w.textContent = pick(['POP!', 'POP!', 'BANG!', 'PAH!']);
+      w.style.left = (px - 30) + 'px'; w.style.top = (py - 20) + 'px';
+      stage.appendChild(w);
+      w.animate([{ transform: 'scale(.4) rotate(-10deg)', opacity: 1 }, { transform: 'scale(1.2) rotate(6deg)', opacity: 1, offset: .4 }, { transform: 'scale(1.1) translateY(-20px)', opacity: 0 }],
+        { duration: 650, easing: 'ease-out' }).onfinish = () => w.remove();
+    }
+    timers.push(setTimeout(() => el.remove(), 200));
+    if (!layer.querySelector('.rb:not(.gone)')) roomCleared();
+  }
+
+  layer.addEventListener('pointerdown', (e) => {
+    const b = e.target.closest('.rb');
+    if (b) popBalloon(b, false);
+  });
+
+  async function autoPop(id) {
+    const order = roomBalloons.slice().sort((a, b) => b.d - a.d);
+    let gap = 300;
+    for (const item of order) {
+      if (id !== runId) return;
+      popBalloon(item.el, true);
+      await wait(gap);
+      gap = Math.max(110, gap * .96);
+    }
+  }
+
+  // ---------- Song + candles ----------
+  let cleared = false;
+  function lyricLine(li) {
+    const box = $('lyrics');
+    box.innerHTML = '';
+    SONG[li].forEach((n, ni) => {
+      if (n[2] === '') return;
+      const s = document.createElement('span');
+      s.dataset.n = ni;
+      s.textContent = n[2] === '@' ? cfg.name + ' ' : n[2];
+      box.appendChild(s);
+    });
+  }
+  function lyricNote(li, ni) {
+    const box = $('lyrics');
+    box.querySelectorAll('span').forEach((s) => {
+      const k = +s.dataset.n;
+      s.classList.toggle('done', k < ni);
+      s.classList.toggle('on', k === ni || (SONG[li][ni][2] === '' && k === ni - 1));
+    });
+  }
+
+  async function roomCleared() {
+    if (cleared) return;
+    cleared = true;
+    const id = runId;
+    await wait(500);
+    if (id !== runId) return;
+    room.classList.add('revealed');
+    Sound.tada();
+    confetti(140);
+    await wait(900);
+    if (id !== runId) return;
+    playSong(lyricLine, lyricNote, () => {
+      if (id !== runId) return;
+      $('lyrics').querySelectorAll('span').forEach((s) => { s.classList.remove('on'); s.classList.add('done'); });
+      room.classList.add('wish');
+      $('hint').hidden = false;
+    });
+  }
+
+  cake.addEventListener('click', () => {
+    if (!room.classList.contains('wish') || cake.classList.contains('out')) return;
+    room.classList.remove('wish');
+    $('hint').hidden = true;
+    cake.classList.add('out');
+    Sound.blow();
+    const id = runId;
+    timers.push(setTimeout(() => {
+      if (id !== runId) return;
+      Sound.tada();
+      const sr = stage.getBoundingClientRect(), cr = cake.getBoundingClientRect();
+      confetti(160, cr.left - sr.left + cr.width / 2, cr.top - sr.top + cr.height * .2, 1.4);
+      confetti(80);
+      showFinal();
+    }, 900));
+  });
+
+  function showFinal() {
+    $('finalTitle').textContent = `Happy birthday, ${cfg.name}!`;
+    $('finalMsg').textContent = cfg.msg || 'Hope your wish comes true.';
+    $('finalFrom').textContent = cfg.from ? `With love from ${cfg.from}` : '';
+    $('finalFrom').hidden = !cfg.from;
+    $('final').hidden = false;
+  }
+
+  // ---------- Running the show ----------
+  function reset() {
+    runId++;
+    stage.classList.add('instant');
+    timers.forEach(clearTimeout); timers = [];
+    cleared = false;
+    parts = [];
+    room.classList.remove('in', 'revealed', 'wish');
+    $('hint').hidden = true;
+    $('final').hidden = true;
+    $('lyrics').innerHTML = '';
+    $('title').textContent = `Happy Birthday, ${cfg.name}!`;
+    $('introTitle').textContent = `For ${cfg.name}`;
+    $('introFrom').textContent = cfg.from ? `A surprise from ${cfg.from}` : 'A surprise is waiting';
+    document.title = `Happy Birthday, ${cfg.name}!`;
+    stage.querySelectorAll('.shard, .popword').forEach((n) => n.remove());
+    buildGarland();
+    buildCake();
+    setupHall();
+    layer.innerHTML = '';
+    void stage.offsetWidth;
+    stage.classList.remove('instant');
+  }
+
+  async function run() {
+    const id = runId;
+    Sound.init();
+    $('muteBtn').hidden = false;
+    sizeCanvas();
+    await wait(450);
+    hall.classList.add('open');
+    Sound.creak();
+    await wait(700);
+    releaseBalloons(16);
+    await wait(3300);
+    if (id !== runId) return;
+    // walk through the door
+    const hr = hall.getBoundingClientRect(), dr = $('doorWrap').getBoundingClientRect();
+    hall.style.transformOrigin = `${dr.left - hr.left + dr.width / 2}px ${dr.top - hr.top + dr.height * .55}px`;
+    fillRoom();
+    Sound.whoosh();
+    hall.classList.add('zoom');
+    await wait(900);
+    room.classList.add('in');
+    await wait(1700);
+    if (id !== runId) return;
+    autoPop(id);
+  }
+
+  $('startBtn').addEventListener('click', () => {
+    $('intro').hidden = true;
+    reset();
+    run();
+  });
+  $('againBtn').addEventListener('click', () => { reset(); run(); });
+
+  $('muteBtn').addEventListener('click', (e) => {
+    const m = !Sound.muted;
+    Sound.setMuted(m);
+    e.currentTarget.textContent = m ? 'Sound off' : 'Sound on';
+    e.currentTarget.setAttribute('aria-pressed', String(m));
+  });
+
+  // ---------- Customize ----------
+  function openCustom() {
+    $('fName').value = cfg.name === 'Friend' ? '' : cfg.name;
+    $('fAge').value = cfg.age || '';
+    $('fFrom').value = cfg.from;
+    $('fMsg').value = cfg.msg;
+    $('linkBox').hidden = true;
+    $('customize').hidden = false;
+    $('fName').focus();
+  }
+  function readForm() {
+    cfg.name = clean($('fName').value, 30) || 'Friend';
+    cfg.age = Math.max(0, Math.min(120, parseInt($('fAge').value, 10) || 0));
+    cfg.from = clean($('fFrom').value, 30);
+    cfg.msg = clean($('fMsg').value, 160);
+  }
+  function shareLink() {
+    const p = new URLSearchParams({ name: cfg.name });
+    if (cfg.age) p.set('age', cfg.age);
+    if (cfg.from) p.set('from', cfg.from);
+    if (cfg.msg) p.set('msg', cfg.msg);
+    return `${location.origin}${location.pathname}?${p}`;
+  }
+  $('makeBtn').addEventListener('click', openCustom);
+  $('makeBtn2').addEventListener('click', openCustom);
+  $('closeCustom').addEventListener('click', () => { $('customize').hidden = true; });
+  $('customForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    readForm();
+    $('customize').hidden = true;
+    $('intro').hidden = true;
+    reset();
+    run();
+  });
+  $('copyBtn').addEventListener('click', async () => {
+    readForm();
+    const link = shareLink(), box = $('linkBox');
+    box.textContent = link; box.hidden = false;
+    try { await navigator.clipboard.writeText(link); box.textContent = 'Copied: ' + link; }
+    catch (_) {
+      const range = document.createRange(); range.selectNodeContents(box);
+      const sel = getSelection(); sel.removeAllRanges(); sel.addRange(range);
+    }
+  });
+
+  window.addEventListener('resize', () => { if (confettiOn) sizeCanvas(); });
+
+  reset();
+})();
+</script>
+</body>
+</html>
