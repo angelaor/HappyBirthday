@@ -452,9 +452,12 @@ form.custom { display: grid; gap: .75rem; text-align: left; }
   // ---------- Settings (from the link, editable in the page) ----------
   const clean = (v, max) => (v || '').replace(/[\u0000-\u001f]/g, '').trim().slice(0, max);
   const q = new URLSearchParams(location.search);
+  // The plain link (no ?name=) is Angela's 42nd birthday page.
+  const DEFAULT = { name: 'Angela', age: 42 };
+  const custom = q.has('name');
   const cfg = {
-    name: clean(q.get('name'), 30) || 'Friend',
-    age: Math.max(0, Math.min(120, parseInt(q.get('age'), 10) || 0)),
+    name: clean(q.get('name'), 30) || DEFAULT.name,
+    age: Math.max(0, Math.min(120, parseInt(q.get('age'), 10) || (custom ? 0 : DEFAULT.age))),
     from: clean(q.get('from'), 30),
     msg: clean(q.get('msg'), 160)
   };
