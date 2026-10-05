@@ -508,11 +508,17 @@ a.btn { display: inline-block; text-decoration: none; }
   // ---------- Sound (Web Audio, nothing to download) ----------
   const Sound = {
     ctx: null, out: null, muted: false, noise: null,
+    // Called from a tap. Phones only allow sound that starts inside a tap, and iPhones
+    // silence web audio when the ring/silent switch is on unless the page asks for media playback.
     init() {
-      if (this.ctx) { if (this.ctx.state === 'suspended') this.ctx.resume(); return; }
+      try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (_) {}
+      this.unlockMedia();
+      if (this.ctx) { this.wake(); return; }
       const AC = window.AudioContext || window.webkitAudioContext;
       if (!AC) return;
       this.ctx = new AC();
+      this.wake();
+      document.addEventListener('visibilitychange', () => { if (!document.hidden) this.wake(); });
       this.out = this.ctx.createGain();
       this.out.gain.value = this.muted ? 0 : .8;
       const comp = this.ctx.createDynamicsCompressor();
@@ -521,6 +527,31 @@ a.btn { display: inline-block; text-decoration: none; }
       this.noise = this.ctx.createBuffer(1, len, this.ctx.sampleRate);
       const d = this.noise.getChannelData(0);
       for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+    },
+    // Resume the context and play one silent sample, which is what unlocks audio on iOS
+    wake() {
+      if (this.ctx.state !== 'running') this.ctx.resume().catch(() => {});
+      const b = this.ctx.createBufferSource();
+      b.buffer = this.ctx.createBuffer(1, 1, 22050);
+      b.connect(this.ctx.destination); b.start(0);
+    },
+    // Older iPhones: a playing <audio> element switches the page to media playback,
+    // so the silent switch no longer mutes the Web Audio song. The clip itself is silence.
+    unlockMedia() {
+      if (this.media) { this.media.play().catch(() => {}); return; }
+      const n = 4000, buf = new Uint8Array(44 + n), v = new DataView(buf.buffer);
+      const str = (o, t) => [...t].forEach((ch, i) => v.setUint8(o + i, ch.charCodeAt(0)));
+      str(0, 'RIFF'); v.setUint32(4, 36 + n, true); str(8, 'WAVEfmt ');
+      v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+      v.setUint32(24, 8000, true); v.setUint32(28, 8000, true); v.setUint16(32, 1, true); v.setUint16(34, 8, true);
+      str(36, 'data'); v.setUint32(40, n, true); buf.fill(128, 44);
+      let bin = ''; buf.forEach((x) => { bin += String.fromCharCode(x); });
+      const a = document.createElement('audio');
+      a.src = 'data:audio/wav;base64,' + btoa(bin);
+      a.loop = true; a.setAttribute('playsinline', ''); a.preload = 'auto';
+      a.hidden = true; document.body.appendChild(a);
+      this.media = a;
+      a.play().catch(() => {});
     },
     setMuted(m) {
       this.muted = m;
@@ -1352,6 +1383,7 @@ a.btn { display: inline-block; text-decoration: none; }
   $('muteBtn').addEventListener('click', (e) => {
     const m = !Sound.muted;
     Sound.setMuted(m);
+    if (Sound.ctx) Sound.wake();
     e.currentTarget.textContent = m ? 'Sound off' : 'Sound on';
     e.currentTarget.setAttribute('aria-pressed', String(m));
   });
