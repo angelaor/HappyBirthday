@@ -296,6 +296,15 @@ button { font: inherit; }
 }
 .final h2 { font-size: 1.6rem; }
 @keyframes rise { from { transform: translateY(-30px); opacity: 0; } }
+.maker {
+  position: absolute; z-index: 22; right: 12px; bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  max-width: min(17rem, calc(100% - 24px));
+  display: grid; gap: .5rem; justify-items: end;
+  padding: .7rem .8rem; border-radius: 16px;
+  background: var(--ink); color: var(--paper);
+}
+.maker p { margin: 0; font-size: .85rem; line-height: 1.35; text-align: right; }
+.btn.slim { padding: .4rem 1rem; font-size: .9rem; box-shadow: 0 3px 0 var(--paper); border-color: var(--paper); }
 .mini-balloon { width: 46px; height: auto; justify-self: center; }
 
 form.custom { display: grid; gap: .75rem; text-align: left; }
@@ -395,7 +404,6 @@ a.btn { display: inline-block; text-decoration: none; }
     <p class="small" id="finalFrom"></p>
     <div class="actions">
       <button class="btn" id="againBtn" type="button">Watch again</button>
-      <button class="btn ghost" id="makeBtn2" type="button">Make one</button>
     </div>
   </div>
 
@@ -407,10 +415,14 @@ a.btn { display: inline-block; text-decoration: none; }
       <p>There's a party behind this door. Turn your sound on for the <span id="introStyle">R&amp;B</span> song.</p>
       <div class="actions">
         <button class="btn" id="startBtn" type="button">Open the door</button>
-        <button class="btn ghost" id="makeBtn" type="button">Make one</button>
       </div>
     </div>
   </div>
+
+  <aside class="maker" id="maker">
+    <p>Want to surprise someone? Make your own birthday door and send it to them.</p>
+    <button class="btn ghost slim" id="makeBtn" type="button">Make one</button>
+  </aside>
 
   <div class="overlay" id="customize" hidden>
     <div class="card">
@@ -1439,7 +1451,13 @@ a.btn { display: inline-block; text-decoration: none; }
     try { await navigator.share({ title: `Happy birthday, ${cfg.name}!`, text: textMessage() }); } catch (_) {}
   });
   $('makeBtn').addEventListener('click', openCustom);
-  $('makeBtn2').addEventListener('click', openCustom);
+  // The corner invite shows on the opening card and the closing card, never during the show or over the form
+  const syncMaker = () => {
+    const hide = !$('customize').hidden || ($('intro').hidden && $('final').hidden);
+    if ($('maker').hidden !== hide) $('maker').hidden = hide;   // only write on change, or the observer would loop
+  };
+  new MutationObserver(syncMaker).observe(stage, { subtree: true, attributes: true, attributeFilter: ['hidden'] });
+  syncMaker();
   $('closeCustom').addEventListener('click', () => { $('customize').hidden = true; });
   $('customForm').addEventListener('submit', (e) => {
     e.preventDefault();

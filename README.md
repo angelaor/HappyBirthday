@@ -24,7 +24,7 @@ Add these to the end of the link:
 
 Example: `index.html?name=Angela&age=30&from=Sam&msg=Have%20the%20best%20day`
 
-You can also press **Make one** in the page and fill in the form. Under **Send it**, enter their mobile number (or leave it blank to choose a contact) and press **Send by text**: your phone's Messages app opens with the link ready to send. **Copy link** and **Share** are there too. The link carries every detail, so the person sees exactly what you set up.
+You can also press **Make one** in the bottom-right corner of the page and fill in the form. Under **Send it**, enter their mobile number (or leave it blank to choose a contact) and press **Send by text**: your phone's Messages app opens with the link ready to send. **Copy link** and **Share** are there too. The link carries every detail, so the person sees exactly what you set up.
 
 ## Host it on GitHub Pages
 
