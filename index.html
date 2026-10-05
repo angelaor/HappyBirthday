@@ -306,6 +306,15 @@ form.custom { display: grid; gap: .75rem; text-align: left; }
   border: 3px solid var(--ink); background: #fff; color: var(--ink); font: inherit;
 }
 .field textarea { resize: vertical; min-height: 4.5rem; }
+.field select {
+  width: 100%; padding: .6rem .7rem; border-radius: 10px; font: inherit;
+  border: 3px solid var(--ink); background: #fff; color: var(--ink);
+}
+.field select:focus-visible { outline: 3px solid var(--door); outline-offset: 3px; }
+a.btn { display: inline-block; text-decoration: none; }
+.send { display: grid; gap: .6rem; padding-top: .9rem; border-top: 3px dashed var(--muted); }
+.send h3 { margin: 0; font-family: var(--font-display); font-weight: 800; font-size: 1.3rem; }
+.send .small { margin: 0; font-size: .85rem; color: var(--muted); text-align: center; }
 .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; }
 .linkbox { font-size: .8rem; word-break: break-all; background: #fff; border: 2px dashed var(--muted); border-radius: 10px; padding: .5rem; user-select: all; }
 
@@ -395,7 +404,7 @@ form.custom { display: grid; gap: .75rem; text-align: left; }
       <svg class="mini-balloon" viewBox="0 0 60 110" aria-hidden="true"><use href="#bshape"/></svg>
       <div class="kicker" id="introFrom">A surprise is waiting</div>
       <h2 id="introTitle"></h2>
-      <p>There's a party behind this door. Turn your sound on for the song.</p>
+      <p>There's a party behind this door. Turn your sound on for the <span id="introStyle">R&amp;B</span> song.</p>
       <div class="actions">
         <button class="btn" id="startBtn" type="button">Open the door</button>
         <button class="btn ghost" id="makeBtn" type="button">Make one</button>
@@ -422,15 +431,38 @@ form.custom { display: grid; gap: .75rem; text-align: left; }
           </div>
         </div>
         <div class="field">
+          <label for="fStyle">Song style</label>
+          <select id="fStyle" name="style">
+            <option value="hiphop">Hip-Hop / Rap</option>
+            <option value="rnb">R&amp;B</option>
+            <option value="pop">Pop</option>
+            <option value="country">Country</option>
+            <option value="latin">Latin</option>
+            <option value="kpop">K-Pop</option>
+          </select>
+        </div>
+        <div class="field">
           <label for="fMsg">Message (optional)</label>
           <textarea id="fMsg" name="msg" maxlength="160"></textarea>
         </div>
         <div class="actions">
-          <button class="btn" type="submit">Play it</button>
-          <button class="btn ghost" type="button" id="copyBtn">Copy link</button>
+          <button class="btn" type="submit">Preview it</button>
           <button class="btn ghost" type="button" id="closeCustom">Close</button>
         </div>
-        <div class="linkbox" id="linkBox" hidden></div>
+        <div class="send">
+          <h3>Send it</h3>
+          <div class="field">
+            <label for="fPhone">Their mobile number (optional)</label>
+            <input id="fPhone" name="phone" type="tel" inputmode="tel" autocomplete="off" placeholder="Leave blank to choose a contact">
+          </div>
+          <div class="actions">
+            <a class="btn" id="smsBtn" href="sms:">Send by text</a>
+            <button class="btn ghost" type="button" id="shareBtn" hidden>Share</button>
+            <button class="btn ghost" type="button" id="copyBtn">Copy link</button>
+          </div>
+          <p class="small">The link carries everything above, so it opens exactly the way you set it up.</p>
+          <div class="linkbox" id="linkBox" hidden></div>
+        </div>
       </form>
     </div>
   </div>
@@ -458,6 +490,7 @@ form.custom { display: grid; gap: .75rem; text-align: left; }
   const cfg = {
     name: clean(q.get('name'), 30) || DEFAULT.name,
     age: Math.max(0, Math.min(120, parseInt(q.get('age'), 10) || (custom ? 0 : DEFAULT.age))),
+    style: q.get('style') || 'rnb',
     from: clean(q.get('from'), 30),
     msg: clean(q.get('msg'), 160)
   };
@@ -577,32 +610,74 @@ form.custom { display: grid; gap: .75rem; text-align: left; }
   };
   const midi = (m) => 440 * Math.pow(2, (m - 69) / 12);
 
-  // ---------- The song: Happy Birthday as a slow R&B jam ----------
-  // The melody is public domain. Key of C, 3/4 with a triplet swing, 76 bpm.
-  // [midi note, beats, syllable, chord change]
+  // ---------- The song: Happy Birthday (public domain melody) in six styles ----------
+  // Key of C. Each note: [midi, beats in 3/4, syllable, chord, beats in 4/4]. 'p' marks the two pickup notes,
+  // whose split comes from the style. Chords are named by scale degree so each style can voice them its own way.
   const SONG = [
-    [[67,2/3,'Hap'],[67,1/3,'py '],[69,1,'birth','Cmaj9'],[67,1,'day '],[72,1,'to '],[71,2,'you','G13']],
-    [[67,2/3,'Hap'],[67,1/3,'py '],[69,1,'birth','Dm9'],[67,1,'day '],[74,1,'to ','G13'],[72,2,'you','Cmaj9']],
-    [[67,2/3,'Hap'],[67,1/3,'py '],[79,1,'birth','C9'],[76,1,'day '],[72,1,'dear '],[71,1,'@','Fmaj9'],[69,1,'']],
-    [[77,2/3,'Hap','Fm9'],[77,1/3,'py '],[76,1,'birth','Cmaj9'],[72,1,'day '],[74,1,'to ','G13'],[72,3,'you','Cmaj9']]
+    [[67,'p','Hap'],[67,'p','py '],[69,1,'birth','I',1],[67,1,'day ',0,1],[72,1,'to ',0,2],[71,2,'you','V',3]],
+    [[67,'p','Hap'],[67,'p','py '],[69,1,'birth','ii',1],[67,1,'day ',0,1],[74,1,'to ','V',2],[72,2,'you','I',3]],
+    [[67,'p','Hap'],[67,'p','py '],[79,1,'birth','I7',1],[76,1,'day ',0,1],[72,1,'dear ',0,2],[71,1,'@','IV',1],[69,1,'',0,2]],
+    [[77,'p','Hap','iv'],[77,'p','py '],[76,1,'birth','I',1],[72,1,'day ',0,1],[74,1,'to ','V',2],[72,3,'you','I',4]]
   ];
-  // [bass note, electric piano voicing]
-  const CHORDS = {
-    Cmaj9: [36, [64, 67, 71, 74]],
-    C9:    [36, [64, 67, 70, 74]],
-    Dm9:   [38, [60, 64, 65, 69]],
-    G13:   [43, [59, 64, 65, 69]],
-    Fmaj9: [41, [57, 64, 67, 72]],
-    Fm9:   [41, [56, 63, 67, 72]]
+  // Chord voicings per family: [bass note, chord notes]
+  const VOICINGS = {
+    lush:   { I: [36, [64, 67, 71, 74]], I7: [36, [64, 67, 70, 74]], ii: [38, [60, 64, 65, 69]],
+              V: [43, [59, 64, 65, 69]], IV: [41, [57, 64, 67, 72]], iv: [41, [56, 63, 67, 72]] },
+    sevens: { I: [36, [59, 64, 67]], I7: [36, [58, 64, 67]], ii: [38, [60, 65, 69]],
+              V: [43, [59, 62, 65]], IV: [41, [57, 60, 64]], iv: [41, [56, 60, 63]] },
+    triads: { I: [36, [60, 64, 67]], I7: [36, [58, 64, 67]], ii: [38, [62, 65, 69]],
+              V: [43, [59, 62, 67]], IV: [41, [60, 65, 69]], iv: [41, [60, 65, 68]] },
+    bright: { I: [36, [64, 67, 72, 74]], I7: [36, [64, 67, 70, 74]], ii: [38, [62, 65, 69, 72]],
+              V: [43, [62, 67, 71, 74]], IV: [41, [65, 69, 72, 76]], iv: [41, [65, 68, 72, 75]] }
   };
-  const INTRO = [[0, 'Cmaj9'], [3, 'Dm9'], [4.5, 'G13']]; // two bars before the pickup
-  const BPM = 76;
+  const grid = (step, len, fn) => Array.from({ length: Math.round(len / step) }, (_, i) => fn(i * step, i));
+  const STYLES = {
+    hiphop: {
+      label: 'Hip-Hop / Rap', gain: 1, meter: 4, bpm: 88, pickup: [.75, .25], chords: 'sevens', reverb: .2,
+      lead: 'whistle', keys: { mode: 'hold', voice: 'piano', vol: .06 },
+      bass: { voice: 'sub808', vol: .5, hits: [[0, 0], [2.5, 0]] },
+      drums: { kick808: [0, .75, 2.5], snare: [1, 3], ohat: [3.5],
+               hat: grid(.5, 4, (b, i) => [b + (i % 2 ? .08 : 0), i % 2 ? .05 : .1]) }
+    },
+    rnb: {
+      label: 'R&B', gain: 1, meter: 3, bpm: 76, pickup: [2 / 3, 1 / 3], chords: 'lush', reverb: .32,
+      lead: 'soul', keys: { mode: 'hold', voice: 'ep', vol: .07 },
+      bass: { voice: 'round', vol: .42, hits: 'changes' },
+      drums: { kick: [0, 5 / 3], snare: [2], hat: grid(1 / 3, 3, (b, i) => [b, i % 3 === 0 ? .12 : (i % 3 === 2 ? .07 : .035)]) }
+    },
+    pop: {
+      label: 'Pop', gain: 1.4, meter: 4, bpm: 112, pickup: [.5, .5], chords: 'bright', reverb: .25,
+      lead: 'bright', keys: { mode: 'grid', voice: 'pluck', vol: .045, at: grid(.5, 4, (b) => b), len: .4 },
+      bass: { voice: 'synthBass', vol: .32, hits: grid(.5, 4, (b, i) => [b, i % 4 === 3 ? 12 : 0]) },
+      drums: { kick: [0, 1, 2, 3], clap: [1, 3], hat: grid(1, 4, (b) => [b + .5, .09]), shaker: grid(.25, 4, (b) => [b, .02]) }
+    },
+    country: {
+      label: 'Country', gain: 1.8, meter: 3, bpm: 104, pickup: [.75, .25], chords: 'triads', reverb: .18,
+      lead: 'fiddle', keys: { mode: 'grid', voice: 'guitar', vol: .06, at: [1, 2], len: .8, strum: .016 },
+      bass: { voice: 'upright', vol: .45, hits: [[0, 0]], alternate: -5 },
+      drums: { kick: [0], brush: [1, 2], shaker: grid(.5, 3, (b, i) => [b, i % 2 ? .03 : .015]) }
+    },
+    latin: {
+      label: 'Latin', gain: 1, meter: 4, bpm: 96, pickup: [.5, .5], chords: 'triads', reverb: .22,
+      lead: 'brass', keys: { mode: 'grid', voice: 'pluck', vol: .05, at: [.75, 1.5, 2.75, 3.5], len: .45 },
+      bass: { voice: 'sub808', vol: .42, hits: [[0, 0], [1, 0], [2, 0], [3, 0]] },
+      drums: { kick808: [0, 1, 2, 3], rim: [.75, 1.5, 2.75, 3.5], shaker: grid(.25, 4, (b, i) => [b, i % 2 ? .035 : .015]) }
+    },
+    kpop: {
+      label: 'K-Pop', gain: 1.4, meter: 4, bpm: 124, pickup: [.5, .5], chords: 'bright', reverb: .35,
+      lead: 'bright', keys: { mode: 'hold', voice: 'pad', vol: .028 },
+      arp: { voice: 'bell', vol: .05, step: .25 },
+      bass: { voice: 'synthBass', vol: .32, hits: grid(.5, 4, (b, i) => [b, i % 2 ? 12 : 0]) },
+      drums: { kick: [0, 1, 2, 3], clap: [1, 3], snare: [1, 3], hat: grid(.25, 4, (b, i) => [b, i % 2 ? .04 : .08]) }
+    }
+  };
+  const STYLE_KEYS = Object.keys(STYLES);
 
   const Band = {
     bus: null, verb: null,
-    start() {
+    start(reverb = .32, gain = 1) {
       const c = Sound.ctx;
-      this.bus = c.createGain(); this.bus.gain.value = .65; this.bus.connect(Sound.out);
+      this.bus = c.createGain(); this.bus.gain.value = .65 * gain; this.bus.connect(Sound.out);
       this.verb = c.createConvolver();
       const len = c.sampleRate * 2.4, ir = c.createBuffer(2, len, c.sampleRate);
       for (let ch = 0; ch < 2; ch++) {
@@ -610,7 +685,7 @@ form.custom { display: grid; gap: .75rem; text-align: left; }
         for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2.6);
       }
       this.verb.buffer = ir;
-      const wet = c.createGain(); wet.gain.value = .32;
+      const wet = c.createGain(); wet.gain.value = reverb;
       this.verb.connect(wet); wet.connect(this.bus);
     },
     stop() {
@@ -695,57 +770,162 @@ form.custom { display: grid; gap: .75rem; text-align: left; }
       g.gain.setValueAtTime(.25, t); g.gain.exponentialRampToValueAtTime(.0001, t + .12);
       o.connect(g); this.send(g, .5); o.start(t); o.stop(t + .15);
     },
-    hat(t, vol) { this.hit(t, .045, 'highpass', 7500, .7, vol, 0); }
+    hat(t, vol) { this.hit(t, .045, 'highpass', 7500, .7, vol, 0); },
+    ohat(t) { this.hit(t, .32, 'highpass', 6500, .7, .08, .2); },
+    shaker(t, vol) { this.hit(t, .05, 'highpass', 5200, .9, vol, 0); },
+    brush(t) { this.hit(t, .2, 'bandpass', 3200, .5, .16, .4); },
+    clap(t) { [0, .011, .022].forEach((d) => this.hit(t + d, d === .022 ? .16 : .02, 'bandpass', 1500, 1, .45, .6)); },
+    rim(t) {
+      this.hit(t, .035, 'bandpass', 2600, 6, .5, .2);
+      this.synth(84, t, .02, .1, { wave: 'square', attack: .001, decay: .03, sustain: .01, release: .02, cutoff: 3000 });
+    },
+    kick808(t) {
+      const c = Sound.ctx, o = c.createOscillator(), g = c.createGain();
+      o.frequency.setValueAtTime(110, t); o.frequency.exponentialRampToValueAtTime(40, t + .2);
+      g.gain.setValueAtTime(1, t); g.gain.exponentialRampToValueAtTime(.0001, t + .7);
+      o.connect(g); this.send(g, 0); o.start(t); o.stop(t + .75);
+    },
+    // One flexible voice used by most instruments below
+    synth(m, t, dur, vol, o) {
+      const c = Sound.ctx, f = midi(m);
+      const g = c.createGain(), lp = c.createBiquadFilter();
+      lp.type = 'lowpass'; lp.Q.value = o.q || .7;
+      const cut = o.cutoff || 8000;
+      if (o.fenv) { lp.frequency.setValueAtTime(cut * o.fenv, t); lp.frequency.exponentialRampToValueAtTime(cut, t + (o.decay || .2)); }
+      else lp.frequency.value = cut;
+      const atk = o.attack ?? .01, dec = o.decay ?? .2, sus = o.sustain ?? .7, rel = o.release ?? .15;
+      g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + atk);
+      g.gain.setTargetAtTime(vol * sus, t + atk, dec / 3);
+      g.gain.setTargetAtTime(.0001, t + Math.max(dur, atk), rel / 3);
+      const stop = t + dur + rel * 2 + .05, oscs = [];
+      (o.detune || [0]).forEach((cents) => {
+        const x = c.createOscillator(); x.type = o.wave || 'sine'; x.detune.value = cents;
+        if (o.scoop && dur >= .3) { x.frequency.setValueAtTime(f * .944, t); x.frequency.exponentialRampToValueAtTime(f, t + .09); }
+        else if (o.glide) { x.frequency.setValueAtTime(f * o.glide, t); x.frequency.exponentialRampToValueAtTime(f, t + .07); }
+        else x.frequency.setValueAtTime(f, t);
+        if (o.vib && dur > .5) {
+          const l = c.createOscillator(), lg = c.createGain();
+          l.frequency.value = 5.4; lg.gain.setValueAtTime(0, t); lg.gain.linearRampToValueAtTime(f * o.vib, t + Math.min(dur, .8));
+          l.connect(lg); lg.connect(x.frequency); oscs.push(l);
+        }
+        x.connect(g); oscs.push(x);
+      });
+      if (o.harm) {
+        const [ratio, amt, len] = o.harm, h = c.createOscillator(), hg = c.createGain();
+        h.frequency.value = f * ratio;
+        hg.gain.setValueAtTime(vol * amt, t); hg.gain.exponentialRampToValueAtTime(.0001, t + len);
+        h.connect(hg); hg.connect(g); oscs.push(h);
+      }
+      g.connect(lp); this.send(lp, o.wet || 0);
+      oscs.forEach((x) => { x.start(t); x.stop(stop); });
+    },
+    play(name, m, t, dur, vol) {
+      const p = VOICES[name];
+      if (p === 'ep') return this.ep(m, t, dur, vol);
+      if (p === 'round') return this.bass(m, t, dur, vol);
+      if (p === 'soul') return this.lead(m, t, dur, vol, dur >= .5);
+      this.synth(m, t, dur, vol, p);
+    }
   };
+  const VOICES = {
+    ep: 'ep', round: 'round', soul: 'soul',
+    piano:     { wave: 'triangle', harm: [2, .35, .25], attack: .004, decay: .9, sustain: .2, release: .3, cutoff: 1900, wet: .35 },
+    pluck:     { wave: 'sawtooth', detune: [-7, 7], cutoff: 900, fenv: 4, attack: .003, decay: .2, sustain: .12, release: .1, wet: .3 },
+    guitar:    { wave: 'sawtooth', cutoff: 1500, fenv: 3, attack: .002, decay: .35, sustain: .18, release: .25, wet: .25 },
+    pad:       { wave: 'sawtooth', detune: [-14, -5, 5, 14], cutoff: 1700, attack: .08, decay: .4, sustain: .8, release: .4, wet: .5 },
+    bell:      { wave: 'sine', harm: [4, .5, .12], attack: .002, decay: .35, sustain: .05, release: .2, wet: .5 },
+    whistle:   { wave: 'sine', harm: [2, .25, 2], attack: .03, decay: .3, sustain: .85, release: .12, vib: .015, scoop: true, wet: .35 },
+    bright:    { wave: 'sawtooth', detune: [-8, 8], cutoff: 2600, attack: .01, decay: .25, sustain: .8, release: .1, vib: .01, wet: .35 },
+    fiddle:    { wave: 'sawtooth', cutoff: 2300, q: 1.5, attack: .06, decay: .3, sustain: .9, release: .12, vib: .02, scoop: true, wet: .3 },
+    brass:     { wave: 'sawtooth', detune: [-5, 5], cutoff: 1300, fenv: 2.4, attack: .03, decay: .25, sustain: .85, release: .1, wet: .3 },
+    sub808:    { wave: 'sine', glide: 1.12, attack: .005, decay: 1.2, sustain: .55, release: .15 },
+    synthBass: { wave: 'sawtooth', cutoff: 480, fenv: 2.2, attack: .004, decay: .15, sustain: .6, release: .06 },
+    upright:   { wave: 'triangle', cutoff: 800, attack: .008, decay: .3, sustain: .3, release: .1 }
+  };
+  const LEAD_VOL = { soul: .2, whistle: .17, bright: .15, fiddle: .09, brass: .16 };
 
   function playSong(onLine, onNote, onEnd) {
     if (!Sound.ctx) { timers.push(setTimeout(onEnd, 500)); return; }
+    const st = STYLES[cfg.style] || STYLES.rnb, M = st.meter;
+    const chords = VOICINGS[st.chords];
     Band.stop();
-    Band.start();
-    const beat = 60 / BPM;
+    Band.start(st.reverb, st.gain);
+    const beat = 60 / st.bpm;
     const t0 = Sound.now() + .3;
     const at = (b) => t0 + b * beat;
     const later = (b, fn, early = 0) => timers.push(setTimeout(fn, Math.max(0, (at(b) - Sound.now()) * 1000 - early)));
 
-    // melody, lyric cues and chord changes
-    const changes = INTRO.slice();
-    let b = 5;
+    // melody, lyric cues and chord changes; two bars of intro, the pickup lands on the last beat
+    const changes = [[0, 'I'], [M, 'ii'], [M * 1.5, 'V']];
+    let b = M * 2 - 1;
     SONG.forEach((line, li) => {
       later(b, () => onLine(li), 60);
       line.forEach((n, ni) => {
-        Band.lead(n[0], at(b), n[1] * beat * .97, .2, n[1] >= 1);
+        const len = n[1] === 'p' ? st.pickup[ni] : (M === 4 ? n[4] : n[1]);
+        Band.play(st.lead, n[0], at(b), len * beat * .97, LEAD_VOL[st.lead]);
         if (n[3]) changes.push([b, n[3]]);
         later(b, () => onNote(li, ni));
-        b += n[1];
+        b += len;
       });
     });
     const end = b;                       // the last "you" ends here
-    const lastBar = end - 3;
+    const lastBar = end - M;
+    const chordAt = (x) => changes.filter((c) => c[0] <= x + .001).pop()[1];
+    const nextChange = (x) => { const n = changes.find((c) => c[0] > x + .001); return n ? n[0] : end + 2; };
 
-    // keys and bass: play on every chord change and re-strike on each bar's downbeat
-    const events = changes.map(([cb, name]) => ({ b: cb, name }));
-    for (let bar = 0; bar <= lastBar; bar += 3) {
-      if (!events.some((e) => Math.abs(e.b - bar) < .01)) {
-        const active = events.filter((e) => e.b < bar).sort((x, y) => y.b - x.b)[0];
-        events.push({ b: bar, name: active.name, soft: true });
+    // keys
+    if (st.keys.mode === 'hold') {
+      // strike on every chord change and again on each downbeat
+      const hits = new Set(changes.map((c) => c[0]));
+      for (let bar = 0; bar <= lastBar; bar += M) hits.add(bar);
+      [...hits].sort((x, y) => x - y).forEach((h, i, arr) => {
+        const span = ((arr[i + 1] ?? end + 2) - h) * beat;
+        chords[chordAt(h)][1].forEach((m, k) => Band.play(st.keys.voice, m, at(h) + k * .018, span, st.keys.vol));
+      });
+    } else {
+      for (let bar = 0; bar <= lastBar; bar += M) {
+        st.keys.at.forEach((pos) => {
+          const h = bar + pos;
+          if (h >= end) return;
+          chords[chordAt(h)][1].forEach((m, k) => Band.play(st.keys.voice, m, at(h) + k * (st.keys.strum || .006), st.keys.len * beat, st.keys.vol));
+        });
       }
     }
-    events.sort((x, y) => x.b - y.b);
-    events.forEach((e, i) => {
-      const next = events[i + 1] ? events[i + 1].b : end + 2;
-      const span = (next - e.b) * beat;
-      const [bassNote, voicing] = CHORDS[e.name];
-      voicing.forEach((m, k) => Band.ep(m, at(e.b) + k * .018, span, (e.soft ? .05 : .07)));
-      Band.bass(bassNote, at(e.b), Math.min(span, beat * 2.6), .42);
-    });
-
-    // drums: kick on 1 and the push before 3, snare on 3, swung triplet hats
-    for (let bar = 0; bar < lastBar; bar += 3) {
-      Band.kick(at(bar)); Band.kick(at(bar + 5 / 3));
-      Band.snare(at(bar + 2));
-      for (let k = 0; k < 9; k++) Band.hat(at(bar + k / 3), k % 3 === 0 ? .12 : (k % 3 === 2 ? .07 : .035));
+    // sparkly arpeggio
+    if (st.arp) {
+      for (let h = 0; h < end; h += st.arp.step) {
+        const notes = chords[chordAt(h)][1], i = Math.round(h / st.arp.step);
+        Band.play(st.arp.voice, notes[i % notes.length] + 12, at(h), st.arp.step * beat, st.arp.vol);
+      }
     }
-    Band.kick(at(lastBar));
+    // bass
+    if (st.bass.hits === 'changes') {
+      changes.forEach(([h, name]) => Band.play(st.bass.voice, chords[name][0], at(h), Math.min(nextChange(h) - h, 2.6) * beat, st.bass.vol));
+    } else {
+      for (let bar = 0, n = 0; bar <= lastBar; bar += M, n++) {
+        st.bass.hits.forEach(([pos, up], i) => {
+          const h = bar + pos;
+          if (h >= end) return;
+          const nextPos = st.bass.hits[i + 1] ? bar + st.bass.hits[i + 1][0] : bar + M;
+          const shift = st.bass.alternate && n % 2 ? st.bass.alternate : 0;
+          Band.play(st.bass.voice, chords[chordAt(h)][0] + up + shift, at(h), (Math.min(nextPos, end) - h) * beat * .95, st.bass.vol);
+        });
+      }
+    }
+    // drums
+    const dr = st.drums;
+    for (let bar = 0; bar < lastBar; bar += M) {
+      (dr.kick || []).forEach((x) => Band.kick(at(bar + x)));
+      (dr.kick808 || []).forEach((x) => Band.kick808(at(bar + x)));
+      (dr.snare || []).forEach((x) => Band.snare(at(bar + x)));
+      (dr.clap || []).forEach((x) => Band.clap(at(bar + x)));
+      (dr.rim || []).forEach((x) => Band.rim(at(bar + x)));
+      (dr.brush || []).forEach((x) => Band.brush(at(bar + x)));
+      (dr.ohat || []).forEach((x) => Band.ohat(at(bar + x)));
+      (dr.hat || []).forEach(([x, v]) => Band.hat(at(bar + x), v));
+      (dr.shaker || []).forEach(([x, v]) => Band.shaker(at(bar + x), v));
+    }
+    if (dr.kick808) Band.kick808(at(lastBar)); else Band.kick(at(lastBar));
     Band.hit(at(lastBar), 2.2, 'highpass', 5200, .5, .14, .8);   // soft cymbal on the final chord
 
     later(end + 1.5, onEnd);
@@ -1124,6 +1304,7 @@ form.custom { display: grid; gap: .75rem; text-align: left; }
     $('lyrics').innerHTML = '';
     $('title').textContent = `Happy Birthday, ${cfg.name}!`;
     $('introTitle').textContent = `For ${cfg.name}`;
+    $('introStyle').textContent = (STYLES[cfg.style] || STYLES.rnb).label;
     $('introFrom').textContent = cfg.from ? `A surprise from ${cfg.from}` : 'A surprise is waiting';
     document.title = `Happy Birthday, ${cfg.name}!`;
     stage.querySelectorAll('.shard, .popword').forEach((n) => n.remove());
@@ -1175,14 +1356,21 @@ form.custom { display: grid; gap: .75rem; text-align: left; }
     e.currentTarget.setAttribute('aria-pressed', String(m));
   });
 
-  // ---------- Customize ----------
+  // ---------- Customize and send ----------
+  const store = {
+    get() { try { return JSON.parse(localStorage.getItem('hb-sender') || '{}'); } catch (_) { return {}; } },
+    set(v) { try { localStorage.setItem('hb-sender', JSON.stringify(v)); } catch (_) {} }
+  };
   function openCustom() {
     $('fName').value = cfg.name === 'Friend' ? '' : cfg.name;
     $('fAge').value = cfg.age || '';
     $('fFrom').value = cfg.from;
     $('fMsg').value = cfg.msg;
+    $('fStyle').value = STYLES[cfg.style] ? cfg.style : 'rnb';
+    $('fPhone').value = store.get().phone || '';
     $('linkBox').hidden = true;
     $('customize').hidden = false;
+    updateSend();
     $('fName').focus();
   }
   function readForm() {
@@ -1190,20 +1378,42 @@ form.custom { display: grid; gap: .75rem; text-align: left; }
     cfg.age = Math.max(0, Math.min(120, parseInt($('fAge').value, 10) || 0));
     cfg.from = clean($('fFrom').value, 30);
     cfg.msg = clean($('fMsg').value, 160);
+    cfg.style = STYLES[$('fStyle').value] ? $('fStyle').value : 'rnb';
   }
   function shareLink() {
     const p = new URLSearchParams({ name: cfg.name });
     if (cfg.age) p.set('age', cfg.age);
     if (cfg.from) p.set('from', cfg.from);
     if (cfg.msg) p.set('msg', cfg.msg);
+    p.set('style', cfg.style);
     return `${location.origin}${location.pathname}?${p}`;
   }
+  function textMessage() {
+    const who = cfg.from ? `${cfg.from} made you a birthday surprise` : 'You have a birthday surprise';
+    return `${who}, ${cfg.name}! Open it with your sound on: ${shareLink()}`;
+  }
+  // Keep the text link current as the form changes, so a tap always sends what is on screen
+  function updateSend() {
+    readForm();
+    const phone = $('fPhone').value.replace(/[^\d+]/g, '');
+    $('smsBtn').href = `sms:${phone}?&body=${encodeURIComponent(textMessage())}`;
+    store.set({ phone: $('fPhone').value });
+  }
+  $('customForm').addEventListener('input', updateSend);
+  $('customForm').addEventListener('change', updateSend);
+  $('shareBtn').hidden = !navigator.share;
+  $('shareBtn').addEventListener('click', async () => {
+    updateSend();
+    try { await navigator.share({ title: `Happy birthday, ${cfg.name}!`, text: textMessage() }); } catch (_) {}
+  });
   $('makeBtn').addEventListener('click', openCustom);
   $('makeBtn2').addEventListener('click', openCustom);
   $('closeCustom').addEventListener('click', () => { $('customize').hidden = true; });
   $('customForm').addEventListener('submit', (e) => {
     e.preventDefault();
     readForm();
+    // put the details in the address bar too, so a refresh or a copied address keeps them
+    try { history.replaceState(null, '', shareLink()); } catch (_) {}
     $('customize').hidden = true;
     $('intro').hidden = true;
     reset();
