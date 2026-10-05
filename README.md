@@ -1,6 +1,6 @@
 # Happy Birthday
 
-A personalised birthday surprise you can send as a link. A cartoon door opens, balloons float out, and the viewer walks into a party room packed with balloons. They pop one by one (or tap them yourself) until the room is clear and a cake with lit candles appears while Happy Birthday plays. When the song ends, tap the candles to blow them out.
+A personalised birthday surprise you can send as a link. A cartoon door opens, balloons float out, and the viewer walks into a party room packed with balloons. They pop one by one (or tap them yourself) until the room is clear, friends jump up from behind the table shouting "SURPRISE!!", and a cake with one lit candle per year appears while an R&B version of Happy Birthday plays. When the song ends, tap the candles to blow them out.
 
 **View the page:** https://angelaor.github.io/HappyBirthday/
 
@@ -17,7 +17,7 @@ Add these to the end of the link:
 | Parameter | What it sets | Example |
 |-----------|--------------|---------|
 | `name` | The birthday person (shown on the door, the banner and in the song lyrics) | `name=Angela` |
-| `age` | The number piped on the cake; also sets the candle count (up to 9) | `age=30` |
+| `age` | How many candles are on the cake (one per year; 5 if left out) | `age=42` |
 | `from` | Who the surprise is from | `from=Sam` |
 | `msg` | A message on the final card | `msg=Have%20the%20best%20day` |
 

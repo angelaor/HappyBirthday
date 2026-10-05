@@ -162,13 +162,13 @@ button { font: inherit; }
 .lyrics span.done { color: var(--ink); }
 
 .table {
-  --tw: min(94vw, 56vh);
+  --tw: min(84vw, 56vh);
   position: absolute; left: 50%; bottom: 9%; width: var(--tw);
   transform: translateX(-50%);
 }
 .cake {
-  display: block; width: 64%; margin: 0 auto -2px; overflow: visible;
-  cursor: default;
+  display: block; width: 78%; margin: 0 auto -2px; overflow: visible;
+  cursor: default; position: relative; z-index: 2;
 }
 .room.wish .cake { cursor: pointer; }
 .cake .flame { transform-box: fill-box; transform-origin: 50% 100%; animation: flicker .45s ease-in-out infinite alternate; }
@@ -195,6 +195,39 @@ button { font: inherit; }
 .legs { display: flex; justify-content: space-between; padding: 0 12%; }
 .legs i { display: block; width: calc(var(--tw) * .05); height: calc(var(--tw) * .2); background: var(--paper); border: 4px solid var(--ink); border-top: 0; }
 
+/* Friends hiding behind the table. The crowd box ends at the tabletop and clips them until they jump up. */
+.base { position: relative; }
+.crowd {
+  position: absolute; left: -15%; width: 130%; bottom: calc(100% - 4px);
+  height: calc(var(--tw) * .8); overflow: hidden; pointer-events: none;
+}
+.person {
+  position: absolute; bottom: 0; width: 20%;
+  transform: translateY(105%);
+  transition: transform .55s cubic-bezier(.3,1.5,.5,1);
+}
+.person svg { display: block; width: 100%; height: auto; transform-origin: 50% 100%; }
+.room.surprise .person { transform: translateY(10%); }
+.room.surprise .person.back { transform: translateY(2%) scale(.92); }
+.room.surprise .person svg { animation: sway 1.5s ease-in-out infinite alternate; }
+.room.surprise .person:nth-child(2n) svg { animation-duration: 1.2s; animation-direction: alternate-reverse; }
+.room.cheer .person svg { animation: jump .35s ease-out 4 alternate; }
+.person .arm-l, .person .arm-r { transform-box: fill-box; animation: wave .45s ease-in-out infinite alternate; }
+.person .arm-l { transform-origin: 100% 100%; }
+.person .arm-r { transform-origin: 0 100%; animation-direction: alternate-reverse; }
+@keyframes sway { from { transform: rotate(-3deg); } to { transform: rotate(3deg); } }
+@keyframes jump { to { transform: translateY(-12%); } }
+@keyframes wave { from { transform: rotate(-12deg); } to { transform: rotate(10deg); } }
+.shout {
+  position: absolute; left: 50%; top: 27%; z-index: 5; pointer-events: none;
+  font-family: var(--font-display); font-weight: 800; white-space: nowrap;
+  font-size: clamp(2.6rem, 11vmin, 6rem); line-height: 1; color: var(--glow);
+  -webkit-text-stroke: 3px var(--ink); paint-order: stroke fill; text-shadow: 0 6px 0 var(--ink);
+  opacity: 0; transform: translate(-50%, -50%) scale(0) rotate(-8deg);
+  transition: transform .45s cubic-bezier(.3,1.7,.5,1), opacity .3s ease;
+}
+.room.shouting .shout { opacity: 1; transform: translate(-50%, -50%) scale(1) rotate(-8deg); }
+
 .balloons { position: absolute; inset: 0; z-index: 4; pointer-events: none; }
 .balloons .rb { pointer-events: auto; touch-action: manipulation; }
 .rb { position: absolute; cursor: pointer; animation: bob var(--bd, 3s) ease-in-out var(--bdl, 0s) infinite alternate; }
@@ -210,13 +243,12 @@ button { font: inherit; }
   -webkit-text-stroke: 2px var(--ink); paint-order: stroke fill;
 }
 .hint {
-  position: absolute; left: 50%; bottom: calc(9% + min(94vw, 56vh) * .78); z-index: 3;
-  transform: translateX(-50%);
-  padding: .5rem .95rem; border-radius: 999px; white-space: nowrap;
+  padding: .5rem .95rem; border-radius: 999px;
   background: var(--ink); color: var(--paper); font-weight: 800; font-size: .95rem;
   animation: nudge 1.2s ease-in-out infinite alternate;
 }
-@keyframes nudge { to { transform: translateX(-50%) translateY(-6px); } }
+@keyframes nudge { to { transform: translateY(-4px); } }
+.room.done .headline { visibility: hidden; }
 #confetti { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 8; }
 
 /* ---------- Cards and controls ---------- */
@@ -257,12 +289,13 @@ button { font: inherit; }
 }
 .chip.mute { right: 12px; }
 .final {
-  position: absolute; left: 16px; right: 16px; z-index: 12;
-  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  position: absolute; left: 16px; right: 16px; z-index: 12; top: 11%;
   margin: 0 auto; width: auto; max-width: 26rem;
+  padding: 1.1rem 1.2rem; gap: .6rem;
   animation: rise .6s cubic-bezier(.3,1.4,.5,1);
 }
-@keyframes rise { from { transform: translateY(40px); opacity: 0; } }
+.final h2 { font-size: 1.6rem; }
+@keyframes rise { from { transform: translateY(-30px); opacity: 0; } }
 .mini-balloon { width: 46px; height: auto; justify-self: center; }
 
 form.custom { display: grid; gap: .75rem; text-align: left; }
@@ -279,6 +312,7 @@ form.custom { display: grid; gap: .75rem; text-align: left; }
 @media (prefers-reduced-motion: reduce) {
   .rb { animation: none; }
   .hint { animation: none; }
+  .person svg, .person .arm-l, .person .arm-r { animation: none !important; }
 }
 </style>
 </head>
@@ -327,14 +361,18 @@ form.custom { display: grid; gap: .75rem; text-align: left; }
     <div class="headline">
       <h1 id="title"></h1>
       <div class="lyrics" id="lyrics" aria-live="polite"></div>
+      <div class="hint" id="hint" hidden>Make a wish, then tap the candles</div>
     </div>
     <div class="table" id="table">
       <svg class="cake" id="cake" viewBox="0 0 300 250" role="img" aria-label="Birthday cake with lit candles"></svg>
-      <div class="tabletop"></div>
-      <div class="cloth"></div>
-      <div class="legs"><i></i><i></i></div>
+      <div class="base">
+        <div class="crowd" id="crowd" aria-hidden="true"></div>
+        <div class="tabletop"></div>
+        <div class="cloth"></div>
+        <div class="legs"><i></i><i></i></div>
+      </div>
     </div>
-    <div class="hint" id="hint" hidden>Make a wish, then tap the candles</div>
+    <div class="shout" id="shout" aria-hidden="true">SURPRISE!!</div>
     <div class="balloons" id="balloons"></div>
   </section>
 
@@ -498,6 +536,34 @@ form.custom { display: grid; gap: .75rem; text-align: left; }
       o.connect(f); f.connect(g); g.connect(this.out);
       o.start(t); lfo.start(t); o.stop(t + 1.35); lfo.stop(t + 1.35);
     },
+    surprise() {
+      if (!this.ctx) return;
+      const c = this.ctx, t = this.now() + .05;
+      // five voices shouting "sur-PRISE!", each a buzzy tone through two vowel formants
+      [150, 190, 230, 280, 320].forEach((f0, i) => {
+        const o = c.createOscillator(); o.type = 'sawtooth';
+        const st = t + i * .02;
+        o.frequency.setValueAtTime(f0, st); o.frequency.linearRampToValueAtTime(f0 * 1.25, st + .2);
+        o.frequency.linearRampToValueAtTime(f0 * 1.45, st + .3); o.frequency.exponentialRampToValueAtTime(f0 * 1.05, st + .85);
+        const g = c.createGain();
+        g.gain.setValueAtTime(0, st); g.gain.linearRampToValueAtTime(.05, st + .03); g.gain.linearRampToValueAtTime(.015, st + .17);
+        g.gain.linearRampToValueAtTime(.07, st + .24); g.gain.setValueAtTime(.06, st + .6); g.gain.exponentialRampToValueAtTime(.0001, st + .95);
+        [[700, 300], [1200, 2300]].forEach(([a, b]) => {
+          const bp = c.createBiquadFilter(); bp.type = 'bandpass'; bp.Q.value = 5;
+          bp.frequency.setValueAtTime(a, st + .22); bp.frequency.linearRampToValueAtTime(b, st + .7);
+          o.connect(bp); bp.connect(g);
+        });
+        g.connect(this.out); o.start(st); o.stop(st + 1);
+      });
+      this.burst(t + .2, 1.1, 1600, 900, .25, 'bandpass', .6);   // crowd noise
+      [523, 659].forEach((f, i) => {                               // party horns
+        const o = c.createOscillator(), g = c.createGain(), lp = c.createBiquadFilter();
+        o.type = 'square'; o.frequency.setValueAtTime(f * .8, t + .3 + i * .06); o.frequency.linearRampToValueAtTime(f, t + .45 + i * .06);
+        lp.type = 'lowpass'; lp.frequency.value = 1800;
+        g.gain.setValueAtTime(0, t + .3); g.gain.linearRampToValueAtTime(.05, t + .36 + i * .06); g.gain.exponentialRampToValueAtTime(.0001, t + 1);
+        o.connect(lp); lp.connect(g); g.connect(this.out); o.start(t + .3); o.stop(t + 1.05);
+      });
+    },
     whoosh() { if (this.ctx) this.burst(this.now(), 1.2, 300, 2400, .25, 'bandpass', .7); },
     blow() { if (this.ctx) this.burst(this.now(), .9, 1400, 300, .55, 'lowpass', .5); },
     tada() {
@@ -508,39 +574,178 @@ form.custom { display: grid; gap: .75rem; text-align: left; }
   };
   const midi = (m) => 440 * Math.pow(2, (m - 69) / 12);
 
-  // Happy Birthday (public domain melody), key of C, 3/4.
-  // [midi note, beats, syllable, chord]
+  // ---------- The song: Happy Birthday as a slow R&B jam ----------
+  // The melody is public domain. Key of C, 3/4 with a triplet swing, 76 bpm.
+  // [midi note, beats, syllable, chord change]
   const SONG = [
-    [[67,.75,'Hap'],[67,.25,'py '],[69,1,'birth','C'],[67,1,'day '],[72,1,'to '],[71,2,'you','G']],
-    [[67,.75,'Hap'],[67,.25,'py '],[69,1,'birth','G'],[67,1,'day '],[74,1,'to '],[72,2,'you','C']],
-    [[67,.75,'Hap'],[67,.25,'py '],[79,1,'birth','C'],[76,1,'day '],[72,1,'dear '],[71,1,'@','F'],[69,2,'']],
-    [[77,.75,'Hap','F'],[77,.25,'py '],[76,1,'birth','C'],[72,1,'day '],[74,1,'to ','G'],[72,3,'you','C']]
+    [[67,2/3,'Hap'],[67,1/3,'py '],[69,1,'birth','Cmaj9'],[67,1,'day '],[72,1,'to '],[71,2,'you','G13']],
+    [[67,2/3,'Hap'],[67,1/3,'py '],[69,1,'birth','Dm9'],[67,1,'day '],[74,1,'to ','G13'],[72,2,'you','Cmaj9']],
+    [[67,2/3,'Hap'],[67,1/3,'py '],[79,1,'birth','C9'],[76,1,'day '],[72,1,'dear '],[71,1,'@','Fmaj9'],[69,1,'']],
+    [[77,2/3,'Hap','Fm9'],[77,1/3,'py '],[76,1,'birth','Cmaj9'],[72,1,'day '],[74,1,'to ','G13'],[72,3,'you','Cmaj9']]
   ];
-  const CHORDS = { C: [48, 60, 64, 67], G: [43, 59, 62, 67], F: [41, 57, 60, 65] };
+  // [bass note, electric piano voicing]
+  const CHORDS = {
+    Cmaj9: [36, [64, 67, 71, 74]],
+    C9:    [36, [64, 67, 70, 74]],
+    Dm9:   [38, [60, 64, 65, 69]],
+    G13:   [43, [59, 64, 65, 69]],
+    Fmaj9: [41, [57, 64, 67, 72]],
+    Fm9:   [41, [56, 63, 67, 72]]
+  };
+  const INTRO = [[0, 'Cmaj9'], [3, 'Dm9'], [4.5, 'G13']]; // two bars before the pickup
+  const BPM = 76;
+
+  const Band = {
+    bus: null, verb: null,
+    start() {
+      const c = Sound.ctx;
+      this.bus = c.createGain(); this.bus.gain.value = .65; this.bus.connect(Sound.out);
+      this.verb = c.createConvolver();
+      const len = c.sampleRate * 2.4, ir = c.createBuffer(2, len, c.sampleRate);
+      for (let ch = 0; ch < 2; ch++) {
+        const d = ir.getChannelData(ch);
+        for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2.6);
+      }
+      this.verb.buffer = ir;
+      const wet = c.createGain(); wet.gain.value = .32;
+      this.verb.connect(wet); wet.connect(this.bus);
+    },
+    stop() {
+      if (!this.bus) return;
+      const g = this.bus.gain, t = Sound.now();
+      g.cancelScheduledValues(t); g.setValueAtTime(g.value, t); g.linearRampToValueAtTime(0, t + .15);
+      const old = this.bus;
+      setTimeout(() => old.disconnect(), 400);
+      this.bus = null;
+    },
+    send(node, wet) {
+      node.connect(this.bus);
+      if (wet) { const s = Sound.ctx.createGain(); s.gain.value = wet; node.connect(s); s.connect(this.verb); }
+    },
+    // Rhodes-style electric piano: sine body, a short bell on top, tremolo, soft top end
+    ep(m, t, dur, vol) {
+      const c = Sound.ctx, f = midi(m);
+      const o = c.createOscillator(), b = c.createOscillator();
+      const g = c.createGain(), bg = c.createGain(), trem = c.createGain();
+      const lfo = c.createOscillator(), lg = c.createGain(), lp = c.createBiquadFilter();
+      o.type = 'sine'; o.frequency.value = f;
+      b.type = 'sine'; b.frequency.value = f * 4.02;
+      g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + .012);
+      g.gain.exponentialRampToValueAtTime(vol * .35, t + 1.4);
+      g.gain.setTargetAtTime(.0001, t + dur, .18);
+      bg.gain.setValueAtTime(vol * .5, t); bg.gain.exponentialRampToValueAtTime(.0001, t + .3);
+      lfo.frequency.value = 4.6; lg.gain.value = .22; lfo.connect(lg); lg.connect(trem.gain);
+      lp.type = 'lowpass'; lp.frequency.value = 2600;
+      o.connect(g); b.connect(bg); bg.connect(g); g.connect(trem); trem.connect(lp);
+      this.send(lp, .7);
+      const end = t + dur + 1;
+      [o, b, lfo].forEach((x) => { x.start(t); x.stop(end); });
+    },
+    bass(m, t, dur, vol) {
+      const c = Sound.ctx, f = midi(m);
+      const o = c.createOscillator(), o2 = c.createOscillator(), g = c.createGain(), lp = c.createBiquadFilter();
+      o.type = 'sine'; o2.type = 'triangle';
+      [o, o2].forEach((x) => { x.frequency.setValueAtTime(f * .94, t); x.frequency.exponentialRampToValueAtTime(f, t + .06); });
+      g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + .02);
+      g.gain.setTargetAtTime(vol * .6, t + .1, .4);
+      g.gain.setTargetAtTime(.0001, t + dur * .95, .08);
+      lp.type = 'lowpass'; lp.frequency.value = 420;
+      o.connect(g); o2.connect(g); g.connect(lp); this.send(lp, 0);
+      [o, o2].forEach((x) => { x.start(t); x.stop(t + dur + .6); });
+    },
+    // Lead melody: warm triangle, scoops up into long notes, vibrato that blooms
+    lead(m, t, dur, vol, scoop) {
+      const c = Sound.ctx, f = midi(m);
+      const o = c.createOscillator(), g = c.createGain(), lp = c.createBiquadFilter();
+      const vib = c.createOscillator(), vg = c.createGain();
+      o.type = 'triangle';
+      if (scoop) { o.frequency.setValueAtTime(f * .944, t); o.frequency.exponentialRampToValueAtTime(f, t + .09); }
+      else o.frequency.setValueAtTime(f, t);
+      vib.frequency.value = 5.4; vg.gain.setValueAtTime(0, t);
+      if (dur > .6) vg.gain.linearRampToValueAtTime(f * .013, t + Math.min(dur, .9));
+      vib.connect(vg); vg.connect(o.frequency);
+      g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + .035);
+      g.gain.setValueAtTime(vol, t + dur * .9); g.gain.linearRampToValueAtTime(.0001, t + dur + .1);
+      lp.type = 'lowpass'; lp.frequency.value = 2200;
+      o.connect(g); g.connect(lp); this.send(lp, .9);
+      [o, vib].forEach((x) => { x.start(t); x.stop(t + dur + .15); });
+    },
+    hit(t, dur, type, freq, q, vol, wet) {
+      const c = Sound.ctx;
+      const s = c.createBufferSource(); s.buffer = Sound.noise;
+      const fl = c.createBiquadFilter(); fl.type = type; fl.frequency.value = freq; fl.Q.value = q;
+      const g = c.createGain();
+      g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + dur);
+      s.connect(fl); fl.connect(g); this.send(g, wet);
+      s.start(t, Math.random() * .5); s.stop(t + dur + .02);
+    },
+    kick(t) {
+      const c = Sound.ctx, o = c.createOscillator(), g = c.createGain();
+      o.frequency.setValueAtTime(130, t); o.frequency.exponentialRampToValueAtTime(42, t + .14);
+      g.gain.setValueAtTime(.95, t); g.gain.exponentialRampToValueAtTime(.0001, t + .45);
+      o.connect(g); this.send(g, 0); o.start(t); o.stop(t + .5);
+    },
+    snare(t) {
+      this.hit(t, .22, 'bandpass', 1900, .6, .5, .9);
+      const c = Sound.ctx, o = c.createOscillator(), g = c.createGain();
+      o.frequency.setValueAtTime(210, t); o.frequency.exponentialRampToValueAtTime(150, t + .08);
+      g.gain.setValueAtTime(.25, t); g.gain.exponentialRampToValueAtTime(.0001, t + .12);
+      o.connect(g); this.send(g, .5); o.start(t); o.stop(t + .15);
+    },
+    hat(t, vol) { this.hit(t, .045, 'highpass', 7500, .7, vol, 0); }
+  };
 
   function playSong(onLine, onNote, onEnd) {
-    const beat = .5;
-    let t = Sound.now() + .3;
-    const t0 = t;
-    const lines = [];
+    if (!Sound.ctx) { timers.push(setTimeout(onEnd, 500)); return; }
+    Band.stop();
+    Band.start();
+    const beat = 60 / BPM;
+    const t0 = Sound.now() + .3;
+    const at = (b) => t0 + b * beat;
+    const later = (b, fn, early = 0) => timers.push(setTimeout(fn, Math.max(0, (at(b) - Sound.now()) * 1000 - early)));
+
+    // melody, lyric cues and chord changes
+    const changes = INTRO.slice();
+    let b = 5;
     SONG.forEach((line, li) => {
-      lines.push({ li, at: t });
+      later(b, () => onLine(li), 60);
       line.forEach((n, ni) => {
-        const dur = n[1] * beat;
-        Sound.tone(midi(n[0]), t, dur * .92, 'triangle', .28);
-        Sound.tone(midi(n[0] + 12), t, dur * .6, 'sine', .06);
-        if (n[3]) {
-          let next = line.findIndex((x, k) => k > ni && x[3]);
-          let span = next === -1 ? line.slice(ni).reduce((s, x) => s + x[1], 0) : line.slice(ni, next).reduce((s, x) => s + x[1], 0);
-          CHORDS[n[3]].forEach((m, k) => Sound.tone(midi(m), t + k * .02, span * beat * .95, 'sine', k === 0 ? .12 : .045));
-        }
-        const at = t;
-        timers.push(setTimeout(() => onNote(li, ni), Math.max(0, (at - Sound.now()) * 1000)));
-        t += dur;
+        Band.lead(n[0], at(b), n[1] * beat * .97, .2, n[1] >= 1);
+        if (n[3]) changes.push([b, n[3]]);
+        later(b, () => onNote(li, ni));
+        b += n[1];
       });
     });
-    lines.forEach((l) => timers.push(setTimeout(() => onLine(l.li), Math.max(0, (l.at - Sound.now()) * 1000 - 60))));
-    timers.push(setTimeout(onEnd, (t - t0) * 1000 + 600));
+    const end = b;                       // the last "you" ends here
+    const lastBar = end - 3;
+
+    // keys and bass: play on every chord change and re-strike on each bar's downbeat
+    const events = changes.map(([cb, name]) => ({ b: cb, name }));
+    for (let bar = 0; bar <= lastBar; bar += 3) {
+      if (!events.some((e) => Math.abs(e.b - bar) < .01)) {
+        const active = events.filter((e) => e.b < bar).sort((x, y) => y.b - x.b)[0];
+        events.push({ b: bar, name: active.name, soft: true });
+      }
+    }
+    events.sort((x, y) => x.b - y.b);
+    events.forEach((e, i) => {
+      const next = events[i + 1] ? events[i + 1].b : end + 2;
+      const span = (next - e.b) * beat;
+      const [bassNote, voicing] = CHORDS[e.name];
+      voicing.forEach((m, k) => Band.ep(m, at(e.b) + k * .018, span, (e.soft ? .05 : .07)));
+      Band.bass(bassNote, at(e.b), Math.min(span, beat * 2.6), .42);
+    });
+
+    // drums: kick on 1 and the push before 3, snare on 3, swung triplet hats
+    for (let bar = 0; bar < lastBar; bar += 3) {
+      Band.kick(at(bar)); Band.kick(at(bar + 5 / 3));
+      Band.snare(at(bar + 2));
+      for (let k = 0; k < 9; k++) Band.hat(at(bar + k / 3), k % 3 === 0 ? .12 : (k % 3 === 2 ? .07 : .035));
+    }
+    Band.kick(at(lastBar));
+    Band.hit(at(lastBar), 2.2, 'highpass', 5200, .5, .14, .8);   // soft cymbal on the final chord
+
+    later(end + 1.5, onEnd);
   }
 
   // ---------- Drawing helpers ----------
@@ -580,37 +785,108 @@ form.custom { display: grid; gap: .75rem; text-align: left; }
   }
 
   function buildCake() {
-    const n = cfg.age ? Math.max(1, Math.min(cfg.age, 9)) : 5;
-    let candles = '', flames = '', smoke = '';
-    const x0 = 95, x1 = 205;
-    for (let i = 0; i < n; i++) {
-      const x = n === 1 ? 150 : x0 + i * ((x1 - x0) / (n - 1));
-      const c = COLORS[(i + 2) % COLORS.length];
-      candles += `<rect x="${x - 5}" y="44" width="10" height="38" rx="2" fill="#fff8ef" stroke="#2b1d3a" stroke-width="2.5"/>
-        <path d="M${x - 5} 52l10 -5M${x - 5} 62l10 -5M${x - 5} 72l10 -5" stroke="${c}" stroke-width="3"/>
-        <line x1="${x}" y1="44" x2="${x}" y2="38" stroke="#2b1d3a" stroke-width="2"/>`;
-      flames += `<path class="flame" d="M${x} 14c7 9 9 15 6 20a7 7 0 0 1-12 0c-3-5 0-11 6-20Z" fill="url(#flameg)" stroke="#2b1d3a" stroke-width="1.5"/>`;
-      smoke += `<circle class="smoke" cx="${x}" cy="28" r="5" fill="#b9aec4"/>`;
+    // One candle per year (5 when no age is given), in staggered rows on the top tier.
+    const n = cfg.age || 5;
+    const rows = n <= 10 ? 1 : n <= 24 ? 2 : n <= 45 ? 3 : 4;
+    const perRow = Math.ceil(n / rows);
+    const w = Math.max(4, Math.min(10, (150 / perRow) * .62)), k = w / 10;
+    let candles = '', flames = '', smoke = '', left = n;
+    for (let r = 0; r < rows; r++) {           // r = 0 is the back row
+      const count = Math.ceil(left / (rows - r)); left -= count;
+      const depth = rows === 1 ? 1 : r / (rows - 1);
+      const base = rows === 1 ? 88 : 72 + depth * 20;
+      const h = (rows === 1 ? 40 : 32) * (.9 + .1 * depth);
+      const half = 72 * (.8 + .2 * depth);
+      const step = count === 1 ? 0 : (half * 2) / (count - 1);
+      const shift = rows > 1 && r % 2 ? step * .25 : 0;
+      for (let i = 0; i < count; i++) {
+        const x = (count === 1 ? 150 : 150 - half + i * step + shift).toFixed(1), top = base - h;
+        const c = COLORS[(i + r * 3 + 2) % COLORS.length];
+        candles += `<rect x="${x - w / 2}" y="${top}" width="${w}" height="${h}" rx="${w * .25}" fill="#fff8ef" stroke="#2b1d3a" stroke-width="${Math.max(1.2, 2.5 * k)}"/>
+          <path d="M${x - w / 2} ${top + h * .3}l${w} ${-w * .5}M${x - w / 2} ${top + h * .6}l${w} ${-w * .5}M${x - w / 2} ${top + h * .9}l${w} ${-w * .5}" stroke="${c}" stroke-width="${Math.max(1.4, 3 * k)}"/>
+          <line x1="${x}" y1="${top}" x2="${x}" y2="${top - 5 * k}" stroke="#2b1d3a" stroke-width="${Math.max(1, 2 * k)}"/>`;
+        flames += `<g transform="translate(${x} ${top - 3 * k}) scale(${k.toFixed(3)})"><path class="flame" style="animation-delay:-${rand(0, .5).toFixed(2)}s" d="M0 -24c7 9 9 15 6 20a7 7 0 0 1-12 0c-3-5 0-11 6-20Z" fill="url(#flameg)" stroke="#2b1d3a" stroke-width="1.5"/></g>`;
+        smoke += `<circle class="smoke" cx="${x}" cy="${top - 14 * k}" r="${5 * k + 1}" fill="#b9aec4"/>`;
+      }
     }
     let sprinkles = '';
     for (let i = 0; i < 26; i++) {
       const x = rand(48, 252), y = rand(170, 222);
       sprinkles += `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="9" height="3" rx="1.5" fill="${pick(COLORS)}" transform="rotate(${rand(0, 180).toFixed(0)} ${x.toFixed(1)} ${y.toFixed(1)})"/>`;
     }
-    const age = cfg.age ? `<text x="150" y="128" text-anchor="middle" font-family="Grandstander, sans-serif" font-weight="800" font-size="34" fill="#ff4f7b" stroke="#2b1d3a" stroke-width="1.5" paint-order="stroke">${cfg.age}</text>` : '';
     cake.innerHTML = `
       <ellipse class="glow" cx="150" cy="110" rx="160" ry="130" fill="url(#cakeglow)"/>
       <ellipse cx="150" cy="238" rx="140" ry="12" fill="#fff8ef" stroke="#2b1d3a" stroke-width="3"/>
       <rect x="35" y="150" width="230" height="86" rx="12" fill="#ffd6a5" stroke="#2b1d3a" stroke-width="3"/>
       <path d="M35 162q0-14 14-14h202q14 0 14 14v8c-10 0-10 16-20 16s-10-12-20-12-10 18-20 18-10-14-20-14-10 12-20 12-10-16-20-16-10 14-20 14-10-12-20-12-10 16-20 16-10-14-20-14-10 12-20 12-10-10-14-10Z" fill="#ff8fab" stroke="#2b1d3a" stroke-width="3" stroke-linejoin="round"/>
       ${sprinkles}
-      <rect x="75" y="82" width="150" height="70" rx="10" fill="#fff8ef" stroke="#2b1d3a" stroke-width="3"/>
-      <path d="M75 94q0-12 12-12h126q12 0 12 12v6c-8 0-8 12-16 12s-8-9-16-9-8 13-16 13-8-10-16-10-8 9-16 9-8-12-16-12-8 10-16 10-8-9-16-9-8 7-12 7Z" fill="#9b5de5" stroke="#2b1d3a" stroke-width="3" stroke-linejoin="round"/>
-      ${age}
+      <g transform="translate(150 0) scale(1.2 1) translate(-150 0)">
+      <rect x="75" y="82" width="150" height="70" rx="10" fill="#fff8ef" stroke="#2b1d3a" stroke-width="3" vector-effect="non-scaling-stroke"/>
+      <ellipse cx="150" cy="84" rx="75" ry="16" fill="#c39bf2" stroke="#2b1d3a" stroke-width="3" vector-effect="non-scaling-stroke"/>
+      <path d="M75 94q0-12 12-12h126q12 0 12 12v6c-8 0-8 12-16 12s-8-9-16-9-8 13-16 13-8-10-16-10-8 9-16 9-8-12-16-12-8 10-16 10-8-9-16-9-8 7-12 7Z" fill="#9b5de5" stroke="#2b1d3a" stroke-width="3" vector-effect="non-scaling-stroke" stroke-linejoin="round"/>
+      </g>
       ${candles}
-      <g>${flames}</g>
+      ${flames}
       ${smoke}`;
     cake.classList.remove('out');
+  }
+
+  // ---------- The friends behind the table (all in their 40s) ----------
+  const INK = '#2b1d3a';
+  const PEOPLE = [
+    // back row first so the front row overlaps it
+    { x: 8,  back: true, skin: '#e8b88f', hair: 'long',  hairColor: '#8a3b1e', grey: true, shirt: '#9b5de5', hat: '#ffb703' },
+    { x: 72, back: true, skin: '#c99a6b', hair: 'short', hairColor: '#2a201b', grey: true, beard: true, shirt: '#49c46a', hat: '#ff7b39' },
+    { x: 0,  skin: '#a86b45', hair: 'buzz',  hairColor: '#1b1714', beard: true, shirt: '#ff7b39', hat: '#9b5de5' },
+    { x: 15, skin: '#6e4024', hair: 'afro',  hairColor: '#1f1410', grey: true, earrings: true, shirt: '#00a6a6' },
+    { x: 65, skin: '#f3d2b6', hair: 'short', hairColor: '#6b4a2f', grey: true, glasses: true, shirt: '#3f7fe0' },
+    { x: 80, skin: '#d3a173', hair: 'bob',   hairColor: '#15100d', earrings: true, glasses: true, shirt: '#ff4f7b', hat: '#49c46a' }
+  ];
+  function personSVG(p) {
+    const s = `stroke="${INK}" stroke-width="3"`;
+    const hairBack = {
+      afro: `<circle cx="60" cy="64" r="40" fill="${p.hairColor}" ${s}/>`,
+      long: `<path d="M28 72Q28 36 60 36Q92 36 92 72V128Q76 134 60 124Q44 134 28 128Z" fill="${p.hairColor}" ${s}/>`,
+      bob: `<path d="M30 74Q30 38 60 38Q90 38 90 74V104H30Z" fill="${p.hairColor}" ${s}/>`
+    }[p.hair] || '';
+    const hairFront = {
+      afro: p.grey ? `<path d="M30 46q4-6 10-8M84 40q6 3 8 9" stroke="#d8d2cc" stroke-width="3" fill="none"/>` : '',
+      long: `<path d="M33 72Q34 42 60 42Q86 42 87 72Q72 52 54 56Q40 60 33 72Z" fill="${p.hairColor}" ${s}/>` +
+            (p.grey ? `<path d="M40 64Q46 50 60 46" stroke="#e2ddd8" stroke-width="4" fill="none" stroke-linecap="round"/>` : ''),
+      bob: `<path d="M33 68Q34 42 60 42Q86 42 87 68Z" fill="${p.hairColor}" ${s}/>`,
+      short: `<path d="M33 72Q32 40 60 40Q88 40 87 72Q82 56 60 55Q38 56 33 72Z" fill="${p.hairColor}" ${s}/>` +
+             (p.grey ? `<path d="M34 66v12M86 66v12" stroke="#d8d2cc" stroke-width="5" stroke-linecap="round"/>` : ''),
+      buzz: `<path d="M34 66Q35 42 60 42Q85 42 86 66Q60 52 34 66Z" fill="${p.hairColor}" ${s}/>`
+    }[p.hair];
+    const hatY = p.hair === 'afro' ? -20 : 0;
+    const arm = (cls, d, hx) => `<g class="${cls}"><path d="${d}" stroke="${INK}" stroke-width="18" stroke-linecap="round" fill="none"/>
+      <path d="${d}" stroke="${p.shirt}" stroke-width="12" stroke-linecap="round" fill="none"/>
+      <circle cx="${hx}" cy="54" r="9" fill="${p.skin}" ${s}/></g>`;
+    return `<svg viewBox="0 0 120 170" aria-hidden="true">
+      ${arm('arm-l', 'M30 132Q14 108 12 64', 12)}
+      ${arm('arm-r', 'M90 132Q106 108 108 64', 108)}
+      <path d="M18 172V146Q18 120 60 118Q102 120 102 146V172Z" fill="${p.shirt}" ${s}/>
+      <rect x="51" y="100" width="18" height="22" fill="${p.skin}" ${s}/>
+      ${hairBack}
+      <circle cx="33" cy="80" r="6" fill="${p.skin}" ${s}/><circle cx="87" cy="80" r="6" fill="${p.skin}" ${s}/>
+      ${p.earrings ? `<circle cx="33" cy="90" r="3" fill="#ffd36b" stroke="${INK}" stroke-width="1.5"/><circle cx="87" cy="90" r="3" fill="#ffd36b" stroke="${INK}" stroke-width="1.5"/>` : ''}
+      <ellipse cx="60" cy="78" rx="26" ry="30" fill="${p.skin}" ${s}/>
+      ${p.beard ? `<path d="M35 82Q36 110 60 111Q84 110 85 82Q80 98 60 99Q40 98 35 82Z" fill="#3d3734" ${s}/><path d="M44 100l2 2M52 104l2 1M66 104l2-1M74 100l2-2" stroke="#cfc9c4" stroke-width="2"/>` : ''}
+      ${hairFront}
+      <path d="M45 64l9-3M66 61l9 3" stroke="${INK}" stroke-width="3" stroke-linecap="round"/>
+      <path d="M47 74q5-6 10 0M63 74q5-6 10 0" stroke="${INK}" stroke-width="3" fill="none" stroke-linecap="round"/>
+      <path d="M41 70l-4-2M41 75l-4 1M79 70l4-2M79 75l4 1" stroke="${INK}" stroke-width="1.5" stroke-linecap="round" opacity=".6"/>
+      ${p.glasses ? `<circle cx="52" cy="73" r="8.5" fill="#fff" fill-opacity=".25" stroke="${INK}" stroke-width="2.5"/><circle cx="68" cy="73" r="8.5" fill="#fff" fill-opacity=".25" stroke="${INK}" stroke-width="2.5"/><path d="M60.5 73h-1" stroke="${INK}" stroke-width="2.5"/>` : ''}
+      <circle cx="44" cy="86" r="5" fill="#ff7b8a" opacity=".35"/><circle cx="76" cy="86" r="5" fill="#ff7b8a" opacity=".35"/>
+      <path d="M47 84q-3 5 1 9M73 84q3 5-1 9" stroke="${INK}" stroke-width="1.5" fill="none" stroke-linecap="round" opacity=".55"/>
+      <ellipse cx="60" cy="93" rx="9" ry="9" fill="#5a1a2a" ${s}/>
+      <ellipse cx="60" cy="97.5" rx="5" ry="3" fill="#ff7b8a"/>
+      ${p.hat ? `<g transform="translate(0 ${hatY})"><path d="M47 50L60 14L73 50Z" fill="${p.hat}" ${s} stroke-linejoin="round"/><path d="M52 37h16M55 26h10" stroke="#fff8ef" stroke-width="3"/><circle cx="60" cy="13" r="5" fill="#ffd36b" ${s}/></g>` : ''}
+    </svg>`;
+  }
+  function buildCrowd() {
+    $('crowd').innerHTML = PEOPLE.map((p, i) =>
+      `<div class="person${p.back ? ' back' : ''}" style="left:${p.x}%;transition-delay:${(i % 2 ? i * .09 + .05 : i * .07).toFixed(2)}s">${personSVG(p)}</div>`).join('');
   }
 
   // ---------- Confetti ----------
@@ -784,11 +1060,16 @@ form.custom { display: grid; gap: .75rem; text-align: left; }
     if (cleared) return;
     cleared = true;
     const id = runId;
-    await wait(500);
+    await wait(450);
     if (id !== runId) return;
+    room.classList.add('surprise', 'shouting');
+    Sound.surprise();
+    confetti(140);
+    await wait(1700);
+    if (id !== runId) return;
+    room.classList.remove('shouting');
     room.classList.add('revealed');
     Sound.tada();
-    confetti(140);
     await wait(900);
     if (id !== runId) return;
     playSong(lyricLine, lyricNote, () => {
@@ -804,6 +1085,7 @@ form.custom { display: grid; gap: .75rem; text-align: left; }
     room.classList.remove('wish');
     $('hint').hidden = true;
     cake.classList.add('out');
+    room.classList.add('cheer');
     Sound.blow();
     const id = runId;
     timers.push(setTimeout(() => {
@@ -822,16 +1104,18 @@ form.custom { display: grid; gap: .75rem; text-align: left; }
     $('finalFrom').textContent = cfg.from ? `With love from ${cfg.from}` : '';
     $('finalFrom').hidden = !cfg.from;
     $('final').hidden = false;
+    room.classList.add('done');
   }
 
   // ---------- Running the show ----------
   function reset() {
     runId++;
+    Band.stop();
     stage.classList.add('instant');
     timers.forEach(clearTimeout); timers = [];
     cleared = false;
     parts = [];
-    room.classList.remove('in', 'revealed', 'wish');
+    room.classList.remove('in', 'revealed', 'wish', 'surprise', 'shouting', 'cheer', 'done');
     $('hint').hidden = true;
     $('final').hidden = true;
     $('lyrics').innerHTML = '';
@@ -842,6 +1126,7 @@ form.custom { display: grid; gap: .75rem; text-align: left; }
     stage.querySelectorAll('.shard, .popword').forEach((n) => n.remove());
     buildGarland();
     buildCake();
+    buildCrowd();
     setupHall();
     layer.innerHTML = '';
     void stage.offsetWidth;
