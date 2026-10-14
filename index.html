@@ -700,11 +700,26 @@ a.btn { display: inline-block; text-decoration: none; }
       bass: { voice: 'upright', vol: .45, hits: [[0, 0]], alternate: -5 },
       drums: { kick: [0], brush: [1, 2], shaker: grid(.5, 3, (b, i) => [b, i % 2 ? .03 : .015]) }
     },
+    // Salsa band playing "Cumpleaños feliz": trumpets in thirds, a choir singing the Spanish vowels,
+    // piano montuno, tumbao bass, 2-3 son clave, cowbell and congas
     latin: {
-      label: 'Latin', gain: 1, meter: 4, bpm: 96, pickup: [.5, .5], chords: 'triads', reverb: .22,
-      lead: 'brass', keys: { mode: 'grid', voice: 'pluck', vol: .05, at: [.75, 1.5, 2.75, 3.5], len: .45 },
-      bass: { voice: 'sub808', vol: .42, hits: [[0, 0], [1, 0], [2, 0], [3, 0]] },
-      drums: { kick808: [0, 1, 2, 3], rim: [.75, 1.5, 2.75, 3.5], shaker: grid(.25, 4, (b, i) => [b, i % 2 ? .035 : .015]) }
+      label: 'Latin', gain: 1.35, meter: 4, bpm: 100, pickup: [.5, .5], chords: 'triads', reverb: .25,
+      lead: 'trumpet', harmony: true, choir: true,
+      keys: { mode: 'grid', voice: 'montuno', vol: .045, at: [.5, 1.5, 2, 3, 3.5], len: .4, octave: true },
+      bass: { voice: 'upright', vol: .55, hits: [[1.5, 0], [3, 7]] },
+      drums: { clave: [[0, 1], [0, 2], [1, 0], [1, 1.5], [1, 3]], cowbell: [0, 1, 2, 3],
+               conga: [[1, 's'], [3, 'o'], [3.5, 'o'], [2.5, 'l']], shaker: grid(.5, 4, (b, i) => [b, i % 2 ? .03 : .015]) },
+      lyrics: [
+        ['Cum', 'ple', 'a', 'ños ', 'fe', 'liz'],
+        ['Cum', 'ple', 'a', 'ños ', 'fe', 'liz'],
+        ['Te ', 'de', 'se', 'a', 'mos ', '@', ''],
+        ['Cum', 'ple', 'a', 'ños ', 'fe', 'liz']
+      ],
+      text: {
+        banner: 'FELIZ CUMPLEAÑOS', shout: '¡SORPRESA!',
+        title: (n) => `¡Feliz cumpleaños, ${n}!`, hint: 'Pide un deseo y toca las velas',
+        wish: 'Que se cumpla tu deseo.', from: (f) => `Con cariño, ${f}`
+      }
     },
     kpop: {
       label: 'K-Pop', gain: 1.4, meter: 4, bpm: 124, pickup: [.5, .5], chords: 'bright', reverb: .35,
@@ -715,6 +730,12 @@ a.btn { display: inline-block; text-decoration: none; }
     }
   };
   const STYLE_KEYS = Object.keys(STYLES);
+  const ENGLISH = {
+    banner: 'HAPPY BIRTHDAY', shout: 'SURPRISE!!', title: (n) => `Happy Birthday, ${n}!`,
+    hint: 'Make a wish, then tap the candles', wish: 'Hope your wish comes true.', from: (f) => `With love from ${f}`
+  };
+  const styleOf = () => STYLES[cfg.style] || STYLES.rnb;
+  const styleText = () => styleOf().text || ENGLISH;
 
   const Band = {
     bus: null, verb: null,
@@ -822,6 +843,44 @@ a.btn { display: inline-block; text-decoration: none; }
       this.hit(t, .035, 'bandpass', 2600, 6, .5, .2);
       this.synth(84, t, .02, .1, { wave: 'square', attack: .001, decay: .03, sustain: .01, release: .02, cutoff: 3000 });
     },
+    // A small choir singing a vowel: two detuned saws through the vowel's three formants
+    choir(m, t, dur, vol, vowel) {
+      const F = { a: [800, 1150, 2900], e: [400, 1900, 2600], i: [300, 2300, 3000], o: [450, 800, 2830], u: [325, 700, 2530] }[vowel] || [800, 1150, 2900];
+      const c = Sound.ctx, f = midi(m), g = c.createGain(), mix = c.createGain();
+      [-9, 9].forEach((cents) => {
+        const o = c.createOscillator(), l = c.createOscillator(), lg = c.createGain();
+        o.type = 'sawtooth'; o.frequency.value = f; o.detune.value = cents;
+        l.frequency.value = 5 + Math.random(); lg.gain.value = f * .008; l.connect(lg); lg.connect(o.frequency);
+        o.connect(mix); [o, l].forEach((x) => { x.start(t); x.stop(t + dur + .3); });
+      });
+      F.forEach((fr, k) => {
+        const bp = c.createBiquadFilter(), bg = c.createGain();
+        bp.type = 'bandpass'; bp.frequency.value = fr; bp.Q.value = 9; bg.gain.value = [1, .55, .3][k];
+        mix.connect(bp); bp.connect(bg); bg.connect(g);
+      });
+      g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + .06);
+      g.gain.setValueAtTime(vol, t + dur * .85); g.gain.linearRampToValueAtTime(.0001, t + dur + .15);
+      this.send(g, .6);
+    },
+    clave(t) {
+      this.synth(91, t, .03, .14, { wave: 'sine', attack: .001, decay: .04, sustain: .01, release: .03 });
+      this.hit(t, .02, 'bandpass', 2500, 4, .15, .2);
+    },
+    cowbell(t, v = .05) {
+      [562, 845].forEach((fr) => {
+        const c = Sound.ctx, o = c.createOscillator(), g = c.createGain(), bp = c.createBiquadFilter();
+        o.type = 'square'; o.frequency.value = fr; bp.type = 'bandpass'; bp.frequency.value = 2600; bp.Q.value = 1;
+        g.gain.setValueAtTime(v, t); g.gain.exponentialRampToValueAtTime(.0001, t + .25);
+        o.connect(bp); bp.connect(g); this.send(g, .15); o.start(t); o.stop(t + .3);
+      });
+    },
+    conga(t, kind) {
+      if (kind === 's') { this.hit(t, .06, 'bandpass', 1800, 1.5, .3, .2); }
+      const c = Sound.ctx, o = c.createOscillator(), g = c.createGain(), fr = kind === 'l' ? 200 : kind === 's' ? 400 : 300;
+      o.frequency.setValueAtTime(fr * 1.15, t); o.frequency.exponentialRampToValueAtTime(fr, t + .03);
+      g.gain.setValueAtTime(kind === 's' ? .2 : .35, t); g.gain.exponentialRampToValueAtTime(.0001, t + (kind === 's' ? .08 : .28));
+      o.connect(g); this.send(g, .2); o.start(t); o.stop(t + .3);
+    },
     kick808(t) {
       const c = Sound.ctx, o = c.createOscillator(), g = c.createGain();
       o.frequency.setValueAtTime(110, t); o.frequency.exponentialRampToValueAtTime(40, t + .2);
@@ -880,12 +939,30 @@ a.btn { display: inline-block; text-decoration: none; }
     whistle:   { wave: 'sine', harm: [2, .25, 2], attack: .03, decay: .3, sustain: .85, release: .12, vib: .015, scoop: true, wet: .35 },
     bright:    { wave: 'sawtooth', detune: [-8, 8], cutoff: 2600, attack: .01, decay: .25, sustain: .8, release: .1, vib: .01, wet: .35 },
     fiddle:    { wave: 'sawtooth', cutoff: 2300, q: 1.5, attack: .06, decay: .3, sustain: .9, release: .12, vib: .02, scoop: true, wet: .3 },
+    trumpet:   { wave: 'sawtooth', detune: [-6, 6], cutoff: 2100, fenv: 1.8, q: 1.2, attack: .025, decay: .2, sustain: .85, release: .08, vib: .012, wet: .3 },
+    montuno:   { wave: 'triangle', harm: [3, .3, .15], attack: .003, decay: .35, sustain: .15, release: .12, cutoff: 3200, wet: .25 },
     brass:     { wave: 'sawtooth', detune: [-5, 5], cutoff: 1300, fenv: 2.4, attack: .03, decay: .25, sustain: .85, release: .1, wet: .3 },
     sub808:    { wave: 'sine', glide: 1.12, attack: .005, decay: 1.2, sustain: .55, release: .15 },
     synthBass: { wave: 'sawtooth', cutoff: 480, fenv: 2.2, attack: .004, decay: .15, sustain: .6, release: .06 },
     upright:   { wave: 'triangle', cutoff: 800, attack: .008, decay: .3, sustain: .3, release: .1 }
   };
-  const LEAD_VOL = { soul: .2, whistle: .17, bright: .15, fiddle: .09, brass: .16 };
+  const LEAD_VOL = { soul: .2, whistle: .17, bright: .15, fiddle: .09, brass: .16, trumpet: .13 };
+
+  // the note a third below in C major, for a second trumpet
+  const thirdBelow = (m) => {
+    const scale = [0, 2, 4, 5, 7, 9, 11], oct = Math.floor(m / 12), i = scale.indexOf(m % 12);
+    if (i < 0) return m - 3;
+    const j = i - 2;
+    return (j < 0 ? oct - 1 : oct) * 12 + scale[(j + 7) % 7];
+  };
+  // which vowel the choir sings: the last vowel of the syllable, and the name's own vowels for '@'
+  const vowelOf = (syl) => {
+    const name = cfg.name.toLowerCase().replace(/[^aeiouáéíóú]/g, '').replace(/[áéíóú]/g, (v) => 'aeiou'['áéíóú'.indexOf(v)]);
+    if (syl === '@') return name[0] || 'a';
+    if (syl === '') return name[name.length - 1] || 'a';
+    const v = syl.toLowerCase().match(/[aeiou]/g);
+    return v ? v[v.length - 1] : 'a';
+  };
 
   function playSong(onLine, onNote, onEnd) {
     if (!Sound.ctx) { timers.push(setTimeout(onEnd, 500)); return; }
@@ -906,6 +983,8 @@ a.btn { display: inline-block; text-decoration: none; }
       line.forEach((n, ni) => {
         const len = n[1] === 'p' ? st.pickup[ni] : (M === 4 ? n[4] : n[1]);
         Band.play(st.lead, n[0], at(b), len * beat * .97, LEAD_VOL[st.lead]);
+        if (st.harmony) Band.play(st.lead, thirdBelow(n[0]), at(b) + .008, len * beat * .97, LEAD_VOL[st.lead] * .55);
+        if (st.choir) Band.choir(n[0], at(b), len * beat * .95, .09, vowelOf(st.lyrics[li][ni]));
         if (n[3]) changes.push([b, n[3]]);
         later(b, () => onNote(li, ni));
         b += len;
@@ -930,7 +1009,8 @@ a.btn { display: inline-block; text-decoration: none; }
         st.keys.at.forEach((pos) => {
           const h = bar + pos;
           if (h >= end) return;
-          chords[chordAt(h)][1].forEach((m, k) => Band.play(st.keys.voice, m, at(h) + k * (st.keys.strum || .006), st.keys.len * beat, st.keys.vol));
+          const notes = chords[chordAt(h)][1];
+          (st.keys.octave ? [...notes, notes[0] + 12] : notes).forEach((m, k) => Band.play(st.keys.voice, m, at(h) + k * (st.keys.strum || .006), st.keys.len * beat, st.keys.vol));
         });
       }
     }
@@ -957,7 +1037,10 @@ a.btn { display: inline-block; text-decoration: none; }
     }
     // drums
     const dr = st.drums;
-    for (let bar = 0; bar < lastBar; bar += M) {
+    for (let bar = 0, n = 0; bar < lastBar; bar += M, n++) {
+      (dr.clave || []).forEach(([odd, x]) => { if (odd === n % 2) Band.clave(at(bar + x)); });
+      (dr.cowbell || []).forEach((x) => Band.cowbell(at(bar + x), x === 0 ? .06 : .035));
+      (dr.conga || []).forEach(([x, k]) => Band.conga(at(bar + x), k));
       (dr.kick || []).forEach((x) => Band.kick(at(bar + x)));
       (dr.kick808 || []).forEach((x) => Band.kick808(at(bar + x)));
       (dr.snare || []).forEach((x) => Band.snare(at(bar + x)));
@@ -968,7 +1051,8 @@ a.btn { display: inline-block; text-decoration: none; }
       (dr.hat || []).forEach(([x, v]) => Band.hat(at(bar + x), v));
       (dr.shaker || []).forEach(([x, v]) => Band.shaker(at(bar + x), v));
     }
-    if (dr.kick808) Band.kick808(at(lastBar)); else Band.kick(at(lastBar));
+    if (dr.kick808) Band.kick808(at(lastBar)); else if (dr.kick) Band.kick(at(lastBar));
+    if (dr.conga) { Band.conga(at(lastBar), 'o'); Band.conga(at(lastBar), 'l'); }
     Band.hit(at(lastBar), 2.2, 'highpass', 5200, .5, .14, .8);   // soft cymbal on the final chord
 
     later(end + 1.5, onEnd);
@@ -992,7 +1076,7 @@ a.btn { display: inline-block; text-decoration: none; }
   }
 
   function buildGarland() {
-    const text = 'HAPPY BIRTHDAY';
+    const text = styleText().banner;
     const n = text.length, W = 1000, H = 130;
     let flags = '';
     for (let i = 0; i < n; i++) {
@@ -1265,11 +1349,13 @@ a.btn { display: inline-block; text-decoration: none; }
   function lyricLine(li) {
     const box = $('lyrics');
     box.innerHTML = '';
+    const words = styleOf().lyrics;
     SONG[li].forEach((n, ni) => {
-      if (n[2] === '') return;
+      const syl = words ? words[li][ni] : n[2];
+      if (syl === '') return;
       const s = document.createElement('span');
       s.dataset.n = ni;
-      s.textContent = n[2] === '@' ? cfg.name + ' ' : n[2];
+      s.textContent = syl === '@' ? cfg.name + ' ' : syl;
       box.appendChild(s);
     });
   }
@@ -1325,9 +1411,9 @@ a.btn { display: inline-block; text-decoration: none; }
   });
 
   function showFinal() {
-    $('finalTitle').textContent = `Happy birthday, ${cfg.name}!`;
-    $('finalMsg').textContent = cfg.msg || 'Hope your wish comes true.';
-    $('finalFrom').textContent = cfg.from ? `With love from ${cfg.from}` : '';
+    $('finalTitle').textContent = styleText().title(cfg.name);
+    $('finalMsg').textContent = cfg.msg || styleText().wish;
+    $('finalFrom').textContent = cfg.from ? styleText().from(cfg.from) : '';
     $('finalFrom').hidden = !cfg.from;
     $('final').hidden = false;
     room.classList.add('done');
@@ -1345,11 +1431,13 @@ a.btn { display: inline-block; text-decoration: none; }
     $('hint').hidden = true;
     $('final').hidden = true;
     $('lyrics').innerHTML = '';
-    $('title').textContent = `Happy Birthday, ${cfg.name}!`;
+    $('title').textContent = styleText().title(cfg.name);
+    $('shout').textContent = styleText().shout;
+    $('hint').textContent = styleText().hint;
     $('introTitle').textContent = `For ${cfg.name}`;
     $('introStyle').textContent = (STYLES[cfg.style] || STYLES.rnb).label;
     $('introFrom').textContent = cfg.from ? `A surprise from ${cfg.from}` : 'A surprise is waiting';
-    document.title = `Happy Birthday, ${cfg.name}!`;
+    document.title = styleText().title(cfg.name);
     stage.querySelectorAll('.shard, .popword').forEach((n) => n.remove());
     buildGarland();
     buildCake();

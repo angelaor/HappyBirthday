@@ -1,6 +1,6 @@
 # Happy Birthday
 
-A personalised birthday surprise you can send as a link. A cartoon door opens, balloons float out, and the viewer walks into a party room packed with balloons. They pop one by one (or tap them yourself) until the room is clear, friends jump up from behind the table shouting "SURPRISE!!", and a cake with one lit candle per year appears while Happy Birthday plays in the style you pick: Hip-Hop / Rap, R&B, Pop, Country, Latin or K-Pop. When the song ends, tap the candles to blow them out.
+A personalised birthday surprise you can send as a link. A cartoon door opens, balloons float out, and the viewer walks into a party room packed with balloons. They pop one by one (or tap them yourself) until the room is clear, friends jump up from behind the table shouting "SURPRISE!!", and a cake with one lit candle per year appears while Happy Birthday plays in the style you pick: Hip-Hop / Rap, R&B, Pop, Country, Latin or K-Pop. Latin plays "Cumpleaños feliz" as salsa, with the words, banner and cards in Spanish. When the song ends, tap the candles to blow them out.
 
 **View the page:** https://angelaor.github.io/HappyBirthday
 
