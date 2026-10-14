@@ -16,13 +16,13 @@ Add these to the end of the link:
 
 | Parameter | What it sets | Example |
 |-----------|--------------|---------|
-| `name` | The birthday person (shown on the door, the banner and in the song lyrics) | `name=Angela` |
-| `age` | How many candles are on the cake (one per year; 5 if left out) | `age=42` |
-| `from` | Who the surprise is from | `from=Sam` |
-| `msg` | A message on the final card | `msg=Have%20the%20best%20day` |
+| `name` | The birthday person (shown on the door, the banner and in the song lyrics) | `name=Name here` |
+| `age` | How many candles are on the cake (one per year; 5 if left out) | `age=111` |
+| `from` | Who the surprise is from | `from=Your name here` |
+| `msg` | A message on the final card | `msg=Have%20the%20best%20day%20ever!` |
 | `style` | The song style: `hiphop`, `rnb`, `pop`, `country`, `latin` or `kpop` (R&B if left out) | `style=kpop` |
 
-Example: `index.html?name=Angela&age=30&from=Sam&msg=Have%20the%20best%20day`
+Example: `index.html?name=Name&age=111&from=Sam&msg=Have%20the%20best%20day%20ever!`
 
 You can also press **Make one** in the bottom-right corner of the page and fill in the form. Under **Send it**, enter their mobile number (or leave it blank to choose a contact) and press **Send by text**: your phone's Messages app opens with the link ready to send. **Copy link** and **Share** are there too. The link carries every detail, so the person sees exactly what you set up.
 
